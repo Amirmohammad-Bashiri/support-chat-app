@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 
 import { useSocketStore, Message, Room } from "@/store/socket-store";
-import { useUserStore } from "@/store/user-store"; // Import the useUserStore
+import { useUserStore } from "@/store/user-store";
 
 export const useSocketConnection = () => {
   const { socket, isConnected, setIsConnected } = useSocketStore();
