@@ -1,5 +1,7 @@
 import { useEffect, useCallback } from "react";
+
 import { useSocketStore, Message, Room } from "@/store/socket-store";
+import { useUserStore } from "@/store/user-store"; // Import the useUserStore
 
 export const useSocketConnection = () => {
   const { socket, isConnected, setIsConnected } = useSocketStore();
@@ -33,6 +35,7 @@ export const useSupport = () => {
     addMessage,
     removeRoom,
   } = useSocketStore();
+  const { user } = useUserStore();
 
   const requestSupport = useCallback(() => {
     if (socket && isConnected && !isAgent) {
@@ -53,18 +56,18 @@ export const useSupport = () => {
 
   const sendMessage = useCallback(
     (text: string) => {
-      if (socket && isConnected && currentRoom) {
+      if (socket && isConnected && currentRoom && user) {
         const message: Message = {
           id: Date.now().toString(),
           text,
-          senderId: socket.id || "user",
+          senderId: user.id,
           timestamp: new Date(),
         };
         socket.emit("send_message", { roomId: currentRoom, message });
         addMessage(currentRoom, message);
       }
     },
-    [socket, isConnected, currentRoom, addMessage]
+    [socket, isConnected, currentRoom, addMessage, user]
   );
 
   const endConversation = useCallback(() => {
