@@ -5,18 +5,26 @@ import { useUserStore } from "@/store/user-store";
 
 export const useSocketConnection = () => {
   const { socket, isConnected, setIsConnected } = useSocketStore();
+  const { user } = useUserStore();
 
   useEffect(() => {
     if (socket) {
       socket.on("connect", () => setIsConnected(true));
       socket.on("disconnect", () => setIsConnected(false));
 
+      // Listen for ping events from the server
+      socket.on("ping", () => {
+        // Respond with pong event, including user ID if available
+        socket.emit("pong", { userId: user?.id });
+      });
+
       return () => {
         socket.off("connect");
         socket.off("disconnect");
+        socket.off("ping");
       };
     }
-  }, [socket, setIsConnected]);
+  }, [socket, setIsConnected, user]);
 
   return { isConnected };
 };
