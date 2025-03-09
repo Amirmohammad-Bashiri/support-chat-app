@@ -1,5 +1,4 @@
 import { useEffect, useCallback } from "react";
-
 import { useSocketStore, Message, Room } from "@/store/socket-store";
 
 export const useSocketConnection = () => {
@@ -43,12 +42,13 @@ export const useSupport = () => {
 
   const joinRoom = useCallback(
     (roomId: string) => {
-      if (socket && isConnected) {
+      //  this should be for admin
+      if (socket && isConnected && isAgent) {
         socket.emit("join_room", roomId);
         setCurrentRoom(roomId);
       }
     },
-    [socket, isConnected, setCurrentRoom]
+    [socket, isConnected, setCurrentRoom, isAgent]
   );
 
   const sendMessage = useCallback(
@@ -77,6 +77,7 @@ export const useSupport = () => {
 
   useEffect(() => {
     if (socket) {
+      // for User
       socket.on("room_created", (room: Room) => {
         addRoom(room);
         if (!isAgent) {
@@ -84,10 +85,21 @@ export const useSupport = () => {
         }
       });
 
-      socket.on("rooms_update", (updatedRooms: Room[]) => {
-        setRooms(updatedRooms);
+      // for Admin - Add a room to the list
+      socket.on("room_added", (room: Room) => {
+        addRoom(room);
       });
 
+      // for Admin - Remove a room from the list
+      socket.on("room_removed", (roomId: string) => {
+        removeRoom(roomId);
+        if (currentRoom === roomId) {
+          setCurrentRoom(null);
+        }
+      });
+
+      // This might not be needed anymore as per the comment
+      // But keeping it for now in case it's still used elsewhere
       socket.on("room_updated", (updatedRoom: Room) => {
         updateRoom(updatedRoom.id, updatedRoom);
       });
@@ -99,6 +111,7 @@ export const useSupport = () => {
         }
       );
 
+      // This event might be redundant with room_removed, but keeping for backward compatibility
       socket.on("room_closed", (roomId: string) => {
         removeRoom(roomId);
         if (currentRoom === roomId) {
@@ -108,7 +121,8 @@ export const useSupport = () => {
 
       return () => {
         socket.off("room_created");
-        socket.off("rooms_update");
+        socket.off("room_added");
+        socket.off("room_removed");
         socket.off("room_updated");
         socket.off("message_received");
         socket.off("room_closed");
