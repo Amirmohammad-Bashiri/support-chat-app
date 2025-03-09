@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import io from "socket.io-client";
+
 import { useSocketStore } from "@/store/socket-store";
 
 export function SocketInitializer() {
