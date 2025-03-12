@@ -10,7 +10,8 @@ export function SocketInitializer() {
 
   useEffect(() => {
     console.log("Initializing socket connection");
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost";
+    const socketUrl =
+      process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:85";
 
     try {
       const socket = io(socketUrl, {

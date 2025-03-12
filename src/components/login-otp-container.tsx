@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import LoginForm from "./login-form";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,8 +17,8 @@ export default function LoginOTPContainer() {
   const [loginResponse, setLoginResponse] = useState<LoginResponse | null>(
     null
   );
-  const router = useRouter();
-  const { user, isLoading, isError } = useUser(); // Use the useUser hook
+
+  const { user, isLoading, isError } = useUser();
 
   const handleLoginSuccess = (response: LoginResponse) => {
     setLoginResponse(response);
@@ -28,10 +27,8 @@ export default function LoginOTPContainer() {
 
   const handleVerificationSuccess = async () => {
     setFormState("success");
-    // Redirect to dashboard after a short delay
-    setTimeout(() => {
-      router.push("/");
-    }, 2000);
+
+    location.href = "/";
   };
 
   useEffect(() => {
