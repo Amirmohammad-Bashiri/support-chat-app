@@ -61,7 +61,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       onSuccess(response);
     } catch (err) {
       setLoginError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
+        err instanceof Error ? err.message : "خطای غیرمنتظره‌ای رخ داد"
       );
     }
   };
@@ -74,20 +74,20 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   return (
     <Card className="w-full max-w-xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold">Login</CardTitle>
+        <CardTitle className="text-2xl font-bold">ورود</CardTitle>
         <CardDescription>
-          Enter your mobile number to get started
+          برای شروع، شماره موبایل خود را وارد کنید
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="countryDialingCode">Country Code</Label>
+            <Label htmlFor="countryDialingCode">کد کشور</Label>
             <Select
               onValueChange={value => setValue("countryDialingCode", value)}
               defaultValue={selectedCountryCode}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select country code" />
+                <SelectValue placeholder="کد کشور را انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
                 {countryCodes.map(country => (
@@ -99,7 +99,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mobileNumber">Mobile Number</Label>
+            <Label htmlFor="mobileNumber">شماره موبایل</Label>
             <div className="relative">
               <PhoneIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
               <Input
@@ -108,10 +108,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                 className="pl-10"
                 placeholder="09120000000"
                 {...register("mobileNumber", {
-                  required: "Mobile number is required",
+                  required: "شماره موبایل الزامی است",
                   pattern: {
                     value: /^[0-9]+$/,
-                    message: "Invalid mobile number",
+                    message: "شماره موبایل نامعتبر است",
                   },
                 })}
               />
@@ -124,18 +124,18 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           </div>
           {loginError && (
             <Alert variant="destructive">
-              <AlertTitle>Error</AlertTitle>
+              <AlertTitle>خطا</AlertTitle>
               <AlertDescription>{loginError}</AlertDescription>
             </Alert>
           )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? "Logging in..." : "Login"}
+            {isLoading ? "در حال ورود..." : "ورود"}
           </Button>
           {loginError && (
             <Button onClick={handleRetry} variant="outline" className="w-full">
-              Retry
+              تلاش مجدد
             </Button>
           )}
         </CardFooter>

@@ -17,48 +17,60 @@ export default function AgentDashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <Card>
-        <CardHeader>
-          <CardTitle>Agent Dashboard</CardTitle>
+        <CardHeader className="bg-black text-white">
+          <CardTitle>داشبورد پشتیبان</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-medium">Active Chats</h3>
-              <p className="text-2xl font-bold">{activeRooms.length}</p>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="font-medium text-gray-500">گفتگوهای فعال</h3>
+              <p className="text-2xl font-bold text-black">
+                {activeRooms.length}
+              </p>
             </div>
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <h3 className="font-medium">Pending Requests</h3>
-              <p className="text-2xl font-bold">{pendingRooms.length}</p>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="font-medium text-gray-500">
+                درخواست‌های در انتظار
+              </h3>
+              <p className="text-2xl font-bold text-black">
+                {pendingRooms.length}
+              </p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="font-medium">Total Chats</h3>
-              <p className="text-2xl font-bold">{rooms.length}</p>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="font-medium text-gray-500">کل گفتگوها</h3>
+              <p className="text-2xl font-bold text-black">{rooms.length}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Pending Support Requests</CardTitle>
+        <CardHeader className="bg-black text-white">
+          <CardTitle>درخواست‌های پشتیبانی در انتظار</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {pendingRooms.length === 0 ? (
-            <p>No pending support requests</p>
+            <p className="text-gray-500">
+              هیچ درخواست پشتیبانی در انتظاری وجود ندارد
+            </p>
           ) : (
             <div className="space-y-2">
               {pendingRooms.map(room => (
                 <div
                   key={room.id}
-                  className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                   <div>
-                    <p className="font-medium">User: {room.userId}</p>
-                    <p className="text-sm text-gray-500">Waiting for agent</p>
+                    <p className="font-medium text-black">
+                      کاربر: {room.userId}
+                    </p>
+                    <p className="text-sm text-gray-500">در انتظار پشتیبان</p>
                   </div>
-                  <Button onClick={() => handleJoinChat(room.id)}>
-                    Join Chat
+                  <Button
+                    onClick={() => handleJoinChat(room.id)}
+                    className="bg-black hover:bg-black/90 text-white">
+                    پیوستن به گفتگو
                   </Button>
                 </div>
               ))}

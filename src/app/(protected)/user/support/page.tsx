@@ -14,26 +14,26 @@ export default function SupportPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="max-w-md mx-auto" dir="rtl">
       <Card>
         <CardHeader>
-          <CardTitle>Need Help?</CardTitle>
+          <CardTitle>نیاز به کمک دارید؟</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4">
-            Connect with one of our support agents to get help with your issue.
+          <p className="mb-4 text-right">
+            برای حل مشکل خود با یکی از پشتیبان‌های ما ارتباط برقرار کنید.
           </p>
           <Button
             onClick={handleRequestSupport}
             disabled={!!currentRoom}
             className="w-full">
-            {currentRoom ? "Support Request Sent" : "Request Support"}
+            {currentRoom ? "درخواست پشتیبانی ارسال شد" : "درخواست پشتیبانی"}
           </Button>
 
           {currentRoom && (
-            <p className="mt-4 text-sm text-green-600">
-              Your support request has been sent. You&apos;ll be redirected to
-              the chat when an agent connects.
+            <p className="mt-4 text-sm text-green-600 text-right">
+              درخواست پشتیبانی شما ارسال شده است. به محض اتصال پشتیبان، به صفحه
+              گفتگو هدایت خواهید شد.
             </p>
           )}
         </CardContent>

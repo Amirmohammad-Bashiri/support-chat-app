@@ -79,7 +79,7 @@ export default function CodeVerificationForm({
         onSuccess();
       } catch (error) {
         setVerificationError(
-          error instanceof Error ? error.message : "Verification failed"
+          error instanceof Error ? error.message : "تأیید ناموفق بود"
         );
       }
     },
@@ -96,7 +96,7 @@ export default function CodeVerificationForm({
       setVerificationError(null);
     } catch (error) {
       setVerificationError(
-        error instanceof Error ? error.message : "Failed to resend code"
+        error instanceof Error ? error.message : "ارسال مجدد کد ناموفق بود"
       );
     }
   };
@@ -105,11 +105,11 @@ export default function CodeVerificationForm({
     <Card className="w-full max-w-xl mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl font-semibold text-center">
-          Verify Your Number
+          تأیید شماره تلفن شما
         </CardTitle>
         <CardDescription className="text-center">
-          We&apos;ve sent a code to{" "}
-          <span className="font-bold">{mobileNumber}</span>
+          کد تایید به شماره <span className="font-bold">{mobileNumber}</span>{" "}
+          ارسال شد
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -119,7 +119,7 @@ export default function CodeVerificationForm({
               maxLength={5}
               autoFocus
               onChange={value => setValue("verificationCode", value)}>
-              <InputOTPGroup>
+              <InputOTPGroup style={{ direction: "ltr" }}>
                 <InputOTPSlot index={0} />
                 <InputOTPSlot index={1} />
                 <InputOTPSlot index={2} />
@@ -129,7 +129,7 @@ export default function CodeVerificationForm({
             </InputOTP>
             {errors.verificationCode && (
               <p className="text-sm text-red-500 text-center mt-2">
-                Please enter a valid 5-digit code
+                لطفاً یک کد ۵ رقمی معتبر وارد کنید
               </p>
             )}
           </div>
@@ -139,26 +139,26 @@ export default function CodeVerificationForm({
             </Alert>
           )}
           <Button type="submit" disabled={isVerifying} className="w-full">
-            {isVerifying ? "Verifying..." : "Verify Code"}
+            {isVerifying ? "در حال تأیید..." : "تأیید کد"}
           </Button>
         </form>
         <div className="text-sm text-gray-500 text-center mt-4">
           {countdown > 0 ? (
-            <p>Resend code in {countdown} seconds</p>
+            <p>ارسال مجدد کد در {countdown} ثانیه</p>
           ) : (
             <Button
               variant="link"
               className="p-0"
               onClick={handleResend}
               disabled={isResending}>
-              {isResending ? "Resending..." : "Resend code"}
+              {isResending ? "در حال ارسال مجدد..." : "ارسال مجدد کد"}
             </Button>
           )}
         </div>
       </CardContent>
       <CardFooter>
         <Button variant="outline" onClick={onBack} className="w-full">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Login
+          <ArrowLeft className="mr-2 h-4 w-4" /> بازگشت به صفحه ورود
         </Button>
       </CardFooter>
     </Card>

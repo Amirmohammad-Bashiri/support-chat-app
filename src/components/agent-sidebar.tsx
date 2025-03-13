@@ -14,12 +14,12 @@ export function AgentSidebar() {
 
   const navItems = [
     {
-      name: "Dashboard",
+      name: "داشبورد",
       href: "/agent/dashboard",
       icon: LayoutDashboard,
     },
     {
-      name: `Chats ${
+      name: `گفتگوها ${
         pendingRooms.length > 0 ? `(${pendingRooms.length})` : ""
       }`,
       href: "/agent/chats",
@@ -28,8 +28,10 @@ export function AgentSidebar() {
   ];
 
   return (
-    <div className="w-64 bg-white shadow-sm h-[calc(100vh-4rem)] p-4">
-      <h2 className="text-lg font-semibold mb-4">Agent Portal</h2>
+    <div
+      className="w-64 bg-white shadow-sm h-[calc(100vh-4rem)] p-4 border-l"
+      dir="rtl">
+      <h2 className="text-lg font-semibold mb-4 text-black">پنل پشتیبان</h2>
       <nav className="space-y-1">
         {navItems.map(item => (
           <Link
@@ -38,10 +40,10 @@ export function AgentSidebar() {
             className={cn(
               "flex items-center px-3 py-2 rounded-md text-sm font-medium",
               pathname === item.href
-                ? "bg-blue-50 text-blue-700"
-                : "text-gray-700 hover:bg-gray-100"
+                ? "bg-black text-white"
+                : "text-gray-700 hover:bg-gray-100 hover:text-black"
             )}>
-            <item.icon className="mr-3 h-5 w-5" />
+            <item.icon className="ml-3 h-5 w-5" />
             {item.name}
           </Link>
         ))}
@@ -50,7 +52,7 @@ export function AgentSidebar() {
       {rooms.length > 0 && (
         <div className="mt-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">
-            Active Chats
+            گفتگوهای فعال
           </h3>
           <div className="space-y-1">
             {rooms
@@ -62,11 +64,11 @@ export function AgentSidebar() {
                   className={cn(
                     "flex items-center px-3 py-2 rounded-md text-sm",
                     pathname === `/agent/chats/${room.id}`
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "bg-black text-white"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-black"
                   )}>
-                  <MessageSquare className="mr-3 h-4 w-4" />
-                  User: {room.userId.substring(0, 8)}...
+                  <MessageSquare className="ml-3 h-4 w-4" />
+                  کاربر: {room.userId.substring(0, 8)}...
                 </Link>
               ))}
           </div>

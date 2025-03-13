@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
+
 import { useSupport } from "@/hooks/socket/use-socket";
 import { ChatInterface } from "@/components/chat-interface";
 
@@ -19,8 +20,16 @@ export default function ChatRoomPage() {
   const room = rooms.find(r => r.id === roomId);
 
   if (!room) {
-    return <div>Chat room not found</div>;
+    return (
+      <div dir="rtl" className="text-right">
+        اتاق گفتگو یافت نشد
+      </div>
+    );
   }
 
-  return <ChatInterface room={room} />;
+  return (
+    <div dir="rtl">
+      <ChatInterface room={room} />
+    </div>
+  );
 }

@@ -17,26 +17,32 @@ export default function AgentChatsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <Card>
-        <CardHeader>
-          <CardTitle>Pending Support Requests</CardTitle>
+        <CardHeader className="bg-black text-white">
+          <CardTitle>درخواست‌های پشتیبانی در انتظار</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {pendingRooms.length === 0 ? (
-            <p>No pending support requests</p>
+            <p className="text-gray-500">
+              هیچ درخواست پشتیبانی در انتظاری وجود ندارد
+            </p>
           ) : (
             <div className="space-y-2">
               {pendingRooms.map(room => (
                 <div
                   key={room.id}
-                  className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                   <div>
-                    <p className="font-medium">User: {room.userId}</p>
-                    <p className="text-sm text-gray-500">Waiting for agent</p>
+                    <p className="font-medium text-black">
+                      کاربر: {room.userId}
+                    </p>
+                    <p className="text-sm text-gray-500">در انتظار پشتیبان</p>
                   </div>
-                  <Button onClick={() => handleJoinChat(room.id)}>
-                    Join Chat
+                  <Button
+                    onClick={() => handleJoinChat(room.id)}
+                    className="bg-black hover:bg-black/90 text-white">
+                    پیوستن به گفتگو
                   </Button>
                 </div>
               ))}
@@ -46,24 +52,28 @@ export default function AgentChatsPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Active Chats</CardTitle>
+        <CardHeader className="bg-black text-white">
+          <CardTitle>گفتگوهای فعال</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {activeRooms.length === 0 ? (
-            <p>No active chats</p>
+            <p className="text-gray-500">هیچ گفتگوی فعالی وجود ندارد</p>
           ) : (
             <div className="space-y-2">
               {activeRooms.map(room => (
                 <div
                   key={room.id}
-                  className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                   <div>
-                    <p className="font-medium">User: {room.userId}</p>
-                    <p className="text-sm text-gray-500">Active conversation</p>
+                    <p className="font-medium text-black">
+                      کاربر: {room.userId}
+                    </p>
+                    <p className="text-sm text-gray-500">گفتگوی فعال</p>
                   </div>
-                  <Button onClick={() => handleJoinChat(room.id)}>
-                    Continue Chat
+                  <Button
+                    onClick={() => handleJoinChat(room.id)}
+                    className="bg-black hover:bg-black/90 text-white">
+                    ادامه گفتگو
                   </Button>
                 </div>
               ))}
