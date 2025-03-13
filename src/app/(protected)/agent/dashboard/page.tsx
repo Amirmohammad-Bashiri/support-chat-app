@@ -17,42 +17,50 @@ export default function AgentDashboardPage() {
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <Card>
-        <CardHeader className="bg-black text-white">
-          <CardTitle>داشبورد پشتیبان</CardTitle>
+    <div className="p-2 sm:p-4 space-y-4" dir="rtl">
+      <Card className="shadow-sm">
+        <CardHeader className="bg-black text-white p-3">
+          <CardTitle className="text-sm sm:text-base">
+            داشبورد پشتیبان
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="font-medium text-gray-500">گفتگوهای فعال</h3>
-              <p className="text-2xl font-bold text-black">
+        <CardContent className="p-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="font-medium text-gray-500 text-xs sm:text-sm">
+                گفتگوهای فعال
+              </h3>
+              <p className="text-xl font-bold text-black">
                 {activeRooms.length}
               </p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="font-medium text-gray-500">
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="font-medium text-gray-500 text-xs sm:text-sm">
                 درخواست‌های در انتظار
               </h3>
-              <p className="text-2xl font-bold text-black">
+              <p className="text-xl font-bold text-black">
                 {pendingRooms.length}
               </p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="font-medium text-gray-500">کل گفتگوها</h3>
-              <p className="text-2xl font-bold text-black">{rooms.length}</p>
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="font-medium text-gray-500 text-xs sm:text-sm">
+                کل گفتگوها
+              </h3>
+              <p className="text-xl font-bold text-black">{rooms.length}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="bg-black text-white">
-          <CardTitle>درخواست‌های پشتیبانی در انتظار</CardTitle>
+      <Card className="shadow-sm">
+        <CardHeader className="bg-black text-white p-3">
+          <CardTitle className="text-sm sm:text-base">
+            درخواست‌های پشتیبانی در انتظار
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="p-3">
           {pendingRooms.length === 0 ? (
-            <p className="text-gray-500">
+            <p className="text-gray-500 text-sm">
               هیچ درخواست پشتیبانی در انتظاری وجود ندارد
             </p>
           ) : (
@@ -60,16 +68,16 @@ export default function AgentDashboardPage() {
               {pendingRooms.map(room => (
                 <div
                   key={room.id}
-                  className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-gray-200">
+                  className="flex flex-col gap-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                   <div>
-                    <p className="font-medium text-black">
+                    <p className="font-medium text-black text-sm">
                       کاربر: {room.userId}
                     </p>
-                    <p className="text-sm text-gray-500">در انتظار پشتیبان</p>
+                    <p className="text-xs text-gray-500">در انتظار پشتیبان</p>
                   </div>
                   <Button
                     onClick={() => handleJoinChat(room.id)}
-                    className="bg-black hover:bg-black/90 text-white">
+                    className="bg-black hover:bg-black/90 text-white text-xs w-full">
                     پیوستن به گفتگو
                   </Button>
                 </div>

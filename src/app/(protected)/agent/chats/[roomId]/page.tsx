@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
-
 import { useSupport } from "@/hooks/socket/use-socket";
 import { ChatInterface } from "@/components/chat-interface";
 

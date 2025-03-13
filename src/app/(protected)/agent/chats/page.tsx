@@ -17,14 +17,16 @@ export default function AgentChatsPage() {
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <Card>
-        <CardHeader className="bg-black text-white">
-          <CardTitle>درخواست‌های پشتیبانی در انتظار</CardTitle>
+    <div className="p-2 sm:p-4 space-y-4" dir="rtl">
+      <Card className="shadow-sm">
+        <CardHeader className="bg-black text-white p-3">
+          <CardTitle className="text-sm sm:text-base">
+            درخواست‌های پشتیبانی در انتظار
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="p-3">
           {pendingRooms.length === 0 ? (
-            <p className="text-gray-500">
+            <p className="text-gray-500 text-sm">
               هیچ درخواست پشتیبانی در انتظاری وجود ندارد
             </p>
           ) : (
@@ -32,16 +34,16 @@ export default function AgentChatsPage() {
               {pendingRooms.map(room => (
                 <div
                   key={room.id}
-                  className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-gray-200">
+                  className="flex flex-col gap-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                   <div>
-                    <p className="font-medium text-black">
+                    <p className="font-medium text-black text-sm">
                       کاربر: {room.userId}
                     </p>
-                    <p className="text-sm text-gray-500">در انتظار پشتیبان</p>
+                    <p className="text-xs text-gray-500">در انتظار پشتیبان</p>
                   </div>
                   <Button
                     onClick={() => handleJoinChat(room.id)}
-                    className="bg-black hover:bg-black/90 text-white">
+                    className="bg-black hover:bg-black/90 text-white text-xs w-full">
                     پیوستن به گفتگو
                   </Button>
                 </div>
@@ -51,28 +53,28 @@ export default function AgentChatsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="bg-black text-white">
-          <CardTitle>گفتگوهای فعال</CardTitle>
+      <Card className="shadow-sm">
+        <CardHeader className="bg-black text-white p-3">
+          <CardTitle className="text-sm sm:text-base">گفتگوهای فعال</CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="p-3">
           {activeRooms.length === 0 ? (
-            <p className="text-gray-500">هیچ گفتگوی فعالی وجود ندارد</p>
+            <p className="text-gray-500 text-sm">هیچ گفتگوی فعالی وجود ندارد</p>
           ) : (
             <div className="space-y-2">
               {activeRooms.map(room => (
                 <div
                   key={room.id}
-                  className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-gray-200">
+                  className="flex flex-col gap-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                   <div>
-                    <p className="font-medium text-black">
+                    <p className="font-medium text-black text-sm">
                       کاربر: {room.userId}
                     </p>
-                    <p className="text-sm text-gray-500">گفتگوی فعال</p>
+                    <p className="text-xs text-gray-500">گفتگوی فعال</p>
                   </div>
                   <Button
                     onClick={() => handleJoinChat(room.id)}
-                    className="bg-black hover:bg-black/90 text-white">
+                    className="bg-black hover:bg-black/90 text-white text-xs w-full">
                     ادامه گفتگو
                   </Button>
                 </div>
