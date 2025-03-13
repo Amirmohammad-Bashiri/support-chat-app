@@ -29,7 +29,7 @@ export function AgentSidebar() {
 
   return (
     <div
-      className="w-64 bg-white shadow-sm h-[calc(100vh-4rem)] p-4 border-l"
+      className="w-64 bg-white shadow-sm h-[calc(100vh-10rem)] p-4 border-l"
       dir="rtl">
       <h2 className="text-lg font-semibold mb-4 text-black">پنل پشتیبان</h2>
       <nav className="space-y-1">
