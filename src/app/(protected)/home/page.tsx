@@ -18,7 +18,7 @@ export default function HomePage() {
   useEffect(() => {
     if (user && !isLoading) {
       // Redirect based on user role
-      if (user.role_name === "agent") {
+      if (user.role_name === "Admin") {
         router.push("/agent/dashboard");
       } else {
         router.push("/user/support");

@@ -102,7 +102,7 @@ export default function CodeVerificationForm({
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-xl mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl font-semibold text-center">
           Verify Your Number

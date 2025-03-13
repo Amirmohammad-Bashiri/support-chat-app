@@ -40,7 +40,7 @@ export function SocketInitializer() {
         socketRef.current = null;
       }
     }
-  }, [socket, setSocket]);
+  }, [setSocket]);
 
   return null;
 }

@@ -40,7 +40,7 @@ export function Navbar({ user }: NavbarProps) {
           <div className="flex items-center gap-4">
             <span>
               {user.first_name} {user.last_name}
-              {user.role_name === "agent" && (
+              {user.role_name === "Admin" && (
                 <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                   Agent
                 </span>

@@ -11,5 +11,5 @@ export default async function Home() {
 
   // For authenticated users, redirect to the home page
   // Role-based redirection will happen client-side
-  redirect("/home");
+  // redirect("/home");
 }

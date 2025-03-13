@@ -154,6 +154,7 @@ export const useSupport = () => {
   return {
     rooms,
     currentRoom,
+    setCurrentRoom,
     requestSupport,
     joinRoom,
     sendMessage,

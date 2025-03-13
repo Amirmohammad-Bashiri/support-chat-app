@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useUser from "@/hooks/useUser";
@@ -17,13 +15,13 @@ export default function AgentLayout({
   const { user, isLoading } = useUser();
   const { setIsAgent } = useSocketStore();
 
-  useEffect(() => {
-    if (!isLoading && user?.role_name !== "agent") {
-      router.push("/user/support");
-    } else if (user?.role_name === "agent") {
-      setIsAgent(true);
-    }
-  }, [user, isLoading, router, setIsAgent]);
+  // useEffect(() => {
+  //   if (!isLoading && user?.role_name !== "Admin") {
+  //     router.push("/user/support");
+  //   } else if (user?.role_name === "Admin") {
+  //     setIsAgent(true);
+  //   }
+  // }, [user, isLoading, router, setIsAgent]);
 
   if (isLoading) {
     return (

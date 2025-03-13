@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+
 import useUser from "@/hooks/useUser";
 import { useUserStore } from "@/store/user-store";
 import { Navbar } from "@/components/navbar";
@@ -12,24 +12,15 @@ export default function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const { user, isLoading, isError } = useUser();
+  const { user, isLoading } = useUser();
   const { setUser } = useUserStore();
 
   useEffect(() => {
     if (user) {
       setUser(user);
+      console.log("user", user);
     }
   }, [user, setUser]);
-
-  useEffect(() => {
-    if (isError) {
-      // If there's an error fetching user data, redirect to login
-      document.cookie =
-        "authentication_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      router.push("/(auth)/login");
-    }
-  }, [isError, router]);
 
   if (isLoading) {
     return (

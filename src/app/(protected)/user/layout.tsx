@@ -13,11 +13,11 @@ export default function UserLayout({
   const router = useRouter();
   const { user, isLoading } = useUser();
 
-  useEffect(() => {
-    if (!isLoading && user?.role_name === "agent") {
-      router.push("/agent/dashboard");
-    }
-  }, [user, isLoading, router]);
+  // useEffect(() => {
+  //   if (!isLoading && user?.role_name === "Admin") {
+  //     router.push("/agent/dashboard");
+  //   }
+  // }, [user, isLoading, router]);
 
   if (isLoading) {
     return (
