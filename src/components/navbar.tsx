@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { LogOut, MessageCircle, Bell, ChevronDown } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, MessageCircle, Bell, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,7 +61,7 @@ export function Navbar({ user }: NavbarProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="relative text-primary-foreground hover:bg-primary/90">
+            className="relative text-seoncdar-foreground">
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 left-1 h-2 w-2 rounded-full bg-destructive"></span>
           </Button>
