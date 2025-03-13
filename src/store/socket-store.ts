@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 
 export interface Message {
   id: string;
@@ -39,7 +39,12 @@ export const useSocketStore = create<SocketStore>(set => ({
   isAgent: false,
   rooms: [],
   currentRoom: null,
-  setSocket: socket => set({ socket }),
+  // Only update if the socket instance is actually different
+  setSocket: socket =>
+    set(state => {
+      if (state.socket === socket) return state;
+      return { socket };
+    }),
   setIsConnected: isConnected => set({ isConnected }),
   setIsAgent: isAgent => set({ isAgent }),
   setRooms: rooms => set({ rooms }),

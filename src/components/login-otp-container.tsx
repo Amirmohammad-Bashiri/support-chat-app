@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useSocketStore } from "@/store/socket-store";
 
 import LoginForm from "./login-form";
-import { Card, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import CodeVerificationForm from "./code-verification-form";
 
 import type { LoginResponse } from "@/types";
-import useUser from "@/hooks/useUser";
 
 type FormState = "login" | "verification" | "success";
 
@@ -17,8 +15,7 @@ export default function LoginOTPContainer() {
   const [loginResponse, setLoginResponse] = useState<LoginResponse | null>(
     null
   );
-
-  const { user, isLoading, isError } = useUser();
+  const { setSocket } = useSocketStore();
 
   const handleLoginSuccess = (response: LoginResponse) => {
     setLoginResponse(response);
@@ -28,14 +25,12 @@ export default function LoginOTPContainer() {
   const handleVerificationSuccess = async () => {
     setFormState("success");
 
-    location.href = "/";
-  };
+    // Clear existing socket if any
+    setSocket(null);
 
-  useEffect(() => {
-    if (formState === "success" && user) {
-      console.log("User data:", user);
-    }
-  }, [formState, user]);
+    // Use location.href for a full page refresh to ensure cookies are properly set
+    window.location.href = "/";
+  };
 
   const handleBack = () => {
     setFormState("login");
@@ -52,30 +47,6 @@ export default function LoginOTPContainer() {
           onSuccess={handleVerificationSuccess}
           onBack={handleBack}
         />
-      )}
-
-      {formState === "success" && (
-        <Card className="w-full mx-auto">
-          <CardContent>
-            {isLoading && (
-              <Alert>
-                <AlertDescription>Loading user data...</AlertDescription>
-              </Alert>
-            )}
-            {isError && (
-              <Alert variant="destructive">
-                <AlertDescription>Failed to load user data.</AlertDescription>
-              </Alert>
-            )}
-            {!isLoading && !isError && (
-              <Alert>
-                <AlertDescription>
-                  Verification successful! Redirecting to dashboard...
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
       )}
     </div>
   );

@@ -24,4 +24,5 @@ export interface User {
   created_by: number | null;
   role: number;
   modified_by: number | null;
+  role_name: "agent" | "user";
 }
