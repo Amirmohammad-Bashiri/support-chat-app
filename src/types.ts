@@ -26,3 +26,12 @@ export interface User {
   modified_by: number | null;
   role_name: "Business Unit Owner" | "Admin";
 }
+
+export interface JWTToken {
+  user_id: number;
+  role_id: number;
+  role_name: "Business Unit Owner" | "Admin";
+  business_unit_id: number;
+  exp: number;
+  iat: number;
+}

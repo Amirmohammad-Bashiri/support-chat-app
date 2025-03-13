@@ -1,34 +1,30 @@
-"use client";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import jwt from "jsonwebtoken";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import useUser from "@/hooks/useUser";
-import { useSocketStore } from "@/store/socket-store";
 import { AgentSidebar } from "@/components/agent-sidebar";
 
-export default function AgentLayout({
+import type { JWTToken } from "@/types";
+
+export default async function AgentLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const { user, isLoading } = useUser();
-  const { setIsAgent } = useSocketStore();
+  // Get the authentication token from cookies
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get("authentication_token");
 
-  // useEffect(() => {
-  //   if (!isLoading && user?.role_name !== "Admin") {
-  //     router.push("/user/support");
-  //   } else if (user?.role_name === "Admin") {
-  //     setIsAgent(true);
-  //   }
-  // }, [user, isLoading, router, setIsAgent]);
+  if (!authToken?.value) {
+    redirect("/login");
+  }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
-    );
+  // Decode JWT token (without verification as we just need to check the role)
+  const decoded = jwt.decode(authToken.value) as JWTToken;
+
+  // Check if role_name is Admin
+  if (decoded.role_name !== "Admin") {
+    redirect("/user/support");
   }
 
   return (
