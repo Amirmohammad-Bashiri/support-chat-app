@@ -1,70 +1,113 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import io from "socket.io-client";
-import { useSocketStore } from "@/store/socket-store";
+import { type Room, useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
+import { useOpenedChatRooms } from "@/hooks/use-opened-chat-rooms";
 
 export function SocketInitializer() {
-  const { setSocket, setIsConnected, setIsAgent } = useSocketStore();
-  const { user } = useUserStore(); // Access the user from the user store
+  const {
+    setSocket,
+    setIsConnected,
+    setIsAgent,
+    setRooms,
+    setCurrentRoom,
+    currentRoom,
+  } = useSocketStore();
+  const { user } = useUserStore();
+  const { openedChatRooms, isLoading, isError } = useOpenedChatRooms();
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
+  const router = useRouter();
 
+  // Initialize the socket connection only once
   useEffect(() => {
-    if (!socketRef.current) {
-      const socketUrl =
-        process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:85";
+    if (socketRef.current) return; // Prevent reinitialization
 
-      try {
-        const newSocket = io(`${socketUrl}/support-chat`, {
-          withCredentials: true,
-          reconnection: true,
-        });
+    const socketUrl =
+      process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:85";
 
-        socketRef.current = newSocket;
-        setSocket(newSocket);
+    try {
+      const newSocket = io(`${socketUrl}/support-chat`, {
+        withCredentials: true,
+        reconnection: true,
+      });
 
-        // Handle connection events
-        newSocket.on("connect", () => {
-          console.log("Socket connected:", newSocket.id);
-          setIsConnected(true);
+      socketRef.current = newSocket;
+      setSocket(newSocket);
 
-          // Set isAgent based on the user's role
-          if (user?.role_name === "Admin") {
-            setIsAgent(true);
-          } else {
-            setIsAgent(false);
-          }
-        });
+      // Handle connection events
+      newSocket.on("connect", () => {
+        console.log("Socket connected:", newSocket.id);
+        setIsConnected(true);
 
-        newSocket.on("disconnect", () => {
-          console.log("Socket disconnected");
+        // Set isAgent based on the user's role
+        const isAdmin = user?.role_name === "Admin";
+        setIsAgent(isAdmin);
+      });
+
+      newSocket.on("disconnect", () => {
+        console.log("Socket disconnected");
+        setIsConnected(false);
+        setIsAgent(false); // Reset isAgent on disconnect
+      });
+
+      // Handle ping-pong events
+      newSocket.on("ping", () => {
+        console.log("Ping received, sending pong...");
+        newSocket.emit("pong");
+      });
+
+      // Cleanup on unmount
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+          socketRef.current = null;
+          setSocket(null);
           setIsConnected(false);
-          setIsAgent(false); // Reset isAgent on disconnect
-        });
-
-        // Handle ping-pong events
-        newSocket.on("ping", () => {
-          console.log("Ping received, sending pong...");
-          newSocket.emit("pong");
-        });
-
-        // Cleanup on unmount
-        return () => {
-          if (socketRef.current) {
-            socketRef.current.disconnect();
-            socketRef.current = null;
-            setSocket(null);
-            setIsConnected(false);
-            setIsAgent(false);
-          }
-        };
-      } catch (error) {
-        console.error("Error initializing socket:", error);
-        socketRef.current = null;
-      }
+          setIsAgent(false);
+        }
+      };
+    } catch (error) {
+      console.error("Error initializing socket:", error);
+      socketRef.current = null;
     }
-  }, [setSocket, setIsConnected, setIsAgent, user]); // Added user to dependencies
+  }, [setSocket, setIsConnected, setIsAgent, user]);
+
+  // Handle updates to openedChatRooms in a separate effect
+  useEffect(() => {
+    if (
+      user?.role_name !== "Admin" &&
+      !isLoading &&
+      !isError &&
+      openedChatRooms.length > 0 &&
+      !currentRoom // Prevent repeated updates
+    ) {
+      console.log("Processing opened chat rooms:", openedChatRooms);
+
+      // Map OpenedChatRoom to Room
+      const rooms = openedChatRooms.map((room: Room) => ({
+        ...room,
+      }));
+
+      setRooms(rooms); // Update the rooms in the socket store
+
+      // Set the current room and redirect the user
+      const firstRoom = rooms[0];
+      setCurrentRoom(firstRoom.id);
+      router.replace(`/user/chat/${firstRoom.id}`);
+    }
+  }, [
+    user?.role_name,
+    isLoading,
+    isError,
+    openedChatRooms,
+    currentRoom,
+    setRooms,
+    setCurrentRoom,
+    router,
+  ]);
 
   return null;
 }
