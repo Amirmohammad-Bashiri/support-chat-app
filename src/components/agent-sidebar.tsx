@@ -13,7 +13,7 @@ export function AgentSidebar() {
   const { rooms } = useSupport();
   const [isOpen, setIsOpen] = useState(false);
 
-  const pendingRooms = rooms.filter(room => !room.agentId);
+  const pendingRooms = rooms.filter(room => !room.agent);
 
   const navItems = [
     {
@@ -89,7 +89,7 @@ export function AgentSidebar() {
               </h3>
               <div className="space-y-1 max-h-[calc(100vh-12rem)] overflow-y-auto">
                 {rooms
-                  .filter(room => room.agentId)
+                  .filter(room => room.agent)
                   .map(room => (
                     <Link
                       key={room.id}
@@ -102,7 +102,7 @@ export function AgentSidebar() {
                           : "text-gray-700 hover:bg-gray-100 hover:text-black"
                       )}>
                       <MessageSquare className="ml-3 h-4 w-4" />
-                      کاربر: {room.userId.substring(0, 6)}...
+                      کاربر:{" "}
                     </Link>
                   ))}
               </div>

@@ -1,10 +1,8 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
 import { useSupport } from "@/hooks/socket/use-socket";
-import { useUserStore } from "@/store/user-store";
+// import { useUserStore } from "@/store/user-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
@@ -26,7 +24,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
   const [message, setMessage] = useState("");
   const { sendMessage, endConversation } = useSupport();
-  const { user } = useUserStore();
+  // const { user } = useUserStore();
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +45,7 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
       <CardHeader className="border-b bg-black text-white">
         <CardTitle className="flex justify-between items-center">
           <span>
-            {isAgent ? `گفتگو با کاربر: ${room.userId}` : "گفتگوی پشتیبانی"}
+            {isAgent ? `گفتگو با کاربر: ${room.client}` : "گفتگوی پشتیبانی"}
           </span>
           {isAgent && (
             <Button variant="destructive" onClick={handleEndChat}>
@@ -57,7 +55,7 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto p-4 bg-gray-50">
-        <div className="space-y-4">
+        {/* <div className="space-y-4">
           {room.messages.map(msg => {
             const isCurrentUser = msg.senderId === user?.id;
             return (
@@ -80,7 +78,7 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
               </div>
             );
           })}
-        </div>
+        </div> */}
       </CardContent>
       <CardFooter className="border-t p-4">
         <form onSubmit={handleSendMessage} className="flex w-full gap-2">

@@ -1,17 +1,24 @@
 "use client";
 
+import { useEffect } from "react";
 import { useSupport } from "@/hooks/socket/use-socket";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SupportPage() {
-  const { requestSupport, currentRoom } = useSupport();
+  const { requestSupport, currentRoom, listenToUserCreatedRoom } = useSupport();
 
   const handleRequestSupport = () => {
     if (!currentRoom) {
+      console.log("Requesting support chat...");
       requestSupport();
     }
   };
+
+  useEffect(() => {
+    const cleanup = listenToUserCreatedRoom(); // Start listening to the event
+    return cleanup; // Cleanup listener on unmount
+  }, [listenToUserCreatedRoom]);
 
   return (
     <div className="max-w-md mx-auto" dir="rtl">

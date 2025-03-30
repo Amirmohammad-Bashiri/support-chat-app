@@ -4,28 +4,7 @@ import { useSocketStore, Message, Room } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 
 export const useSocketConnection = () => {
-  const { socket, isConnected, setIsConnected } = useSocketStore();
-  const { user } = useUserStore();
-
-  useEffect(() => {
-    if (socket) {
-      socket.on("connect", () => setIsConnected(true));
-      socket.on("disconnect", () => setIsConnected(false));
-
-      // Listen for ping events from the server
-      socket.on("ping", () => {
-        // Respond with pong event, including user ID if available
-        socket.emit("pong", { userId: user?.id });
-      });
-
-      return () => {
-        socket.off("connect");
-        socket.off("disconnect");
-        socket.off("ping");
-      };
-    }
-  }, [socket, setIsConnected, user]);
-
+  const { isConnected } = useSocketStore(); // Removed socket event handling
   return { isConnected };
 };
 
@@ -46,14 +25,14 @@ export const useSupport = () => {
   const { user } = useUserStore();
 
   const requestSupport = useCallback(() => {
+    console.log(socket && isConnected && !isAgent);
     if (socket && isConnected && !isAgent) {
-      socket.emit("request_support");
+      socket.emit("request_support_chat", {});
     }
   }, [socket, isConnected, isAgent]);
 
   const joinRoom = useCallback(
-    (roomId: string) => {
-      //  this should be for admin
+    (roomId: number) => {
       if (socket && isConnected && isAgent) {
         socket.emit("join_room", roomId);
         setCurrentRoom(roomId);
@@ -62,14 +41,33 @@ export const useSupport = () => {
     [socket, isConnected, setCurrentRoom, isAgent]
   );
 
+  const listenToUserCreatedRoom = useCallback(() => {
+    if (socket) {
+      socket.on("user_created_room", (room: Room) => {
+        console.log("Data received from user_created_room event:", room);
+        setCurrentRoom(room.id); // Set the current room
+        // socket.emit("join_room", room.id); // Join the user to the room
+        // console.log(`Joined room with ID: ${room.id}`);
+      });
+
+      return () => {
+        socket.off("user_created_room"); // Cleanup listener
+      };
+    }
+  }, [socket, setCurrentRoom]);
+
   const sendMessage = useCallback(
     (text: string) => {
       if (socket && isConnected && currentRoom && user) {
         const message: Message = {
-          id: Date.now().toString(),
+          id: Date.now(),
           text,
-          senderId: user.id,
-          timestamp: new Date(),
+          support_chat_set: currentRoom,
+          is_edited: false,
+          created_at: new Date().toISOString(),
+          created_by: user.id,
+          message_type: 1,
+          is_deleted: false,
         };
         socket.emit("send_message", { roomId: currentRoom, message });
         addMessage(currentRoom, message);
@@ -88,42 +86,14 @@ export const useSupport = () => {
 
   useEffect(() => {
     if (socket) {
-      // for User
       socket.on("room_created", (room: Room) => {
         addRoom(room);
-        if (!isAgent) {
+        if (!isAgent && currentRoom !== room.id) {
           setCurrentRoom(room.id);
         }
       });
 
-      // for Admin - Add a room to the list
-      socket.on("room_added", (room: Room) => {
-        addRoom(room);
-      });
-
-      // for Admin - Remove a room from the list
-      socket.on("room_removed", (roomId: string) => {
-        removeRoom(roomId);
-        if (currentRoom === roomId) {
-          setCurrentRoom(null);
-        }
-      });
-
-      // This might not be needed anymore as per the comment
-      // But keeping it for now in case it's still used elsewhere
-      socket.on("room_updated", (updatedRoom: Room) => {
-        updateRoom(updatedRoom.id, updatedRoom);
-      });
-
-      socket.on(
-        "message_received",
-        ({ roomId, message }: { roomId: string; message: Message }) => {
-          addMessage(roomId, message);
-        }
-      );
-
-      // This event might be redundant with room_removed, but keeping for backward compatibility
-      socket.on("room_closed", (roomId: string) => {
+      socket.on("room_removed", (roomId: number) => {
         removeRoom(roomId);
         if (currentRoom === roomId) {
           setCurrentRoom(null);
@@ -132,8 +102,37 @@ export const useSupport = () => {
 
       return () => {
         socket.off("room_created");
-        socket.off("room_added");
         socket.off("room_removed");
+      };
+    }
+  }, [socket, addRoom, removeRoom, currentRoom, setCurrentRoom, isAgent]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("room_added", (room: Room) => {
+        addRoom(room);
+      });
+
+      socket.on("room_updated", (updatedRoom: Room) => {
+        updateRoom(updatedRoom.id, updatedRoom);
+      });
+
+      socket.on(
+        "message_received",
+        ({ roomId, message }: { roomId: number; message: Message }) => {
+          addMessage(roomId, message);
+        }
+      );
+
+      socket.on("room_closed", (roomId: number) => {
+        removeRoom(roomId);
+        if (currentRoom === roomId) {
+          setCurrentRoom(null);
+        }
+      });
+
+      return () => {
+        socket.off("room_added");
         socket.off("room_updated");
         socket.off("message_received");
         socket.off("room_closed");
@@ -152,6 +151,7 @@ export const useSupport = () => {
   ]);
 
   return {
+    socket, // Include socket in the return value
     rooms,
     currentRoom,
     setCurrentRoom,
@@ -159,5 +159,6 @@ export const useSupport = () => {
     joinRoom,
     sendMessage,
     endConversation,
+    listenToUserCreatedRoom, // Expose the listener
   };
 };

@@ -9,10 +9,10 @@ export default function AgentChatsPage() {
   const { rooms } = useSupport();
   const router = useRouter();
 
-  const activeRooms = rooms.filter(room => room.isActive && room.agentId);
-  const pendingRooms = rooms.filter(room => !room.agentId);
+  const activeRooms = rooms.filter(room => room.is_active && room.agent);
+  const pendingRooms = rooms.filter(room => !room.agent);
 
-  const handleJoinChat = (roomId: string) => {
+  const handleJoinChat = (roomId: number) => {
     router.push(`/agent/chats/${roomId}`);
   };
 
@@ -37,7 +37,7 @@ export default function AgentChatsPage() {
                   className="flex flex-col gap-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                   <div>
                     <p className="font-medium text-black text-sm">
-                      کاربر: {room.userId}
+                      کاربر: {room.client}
                     </p>
                     <p className="text-xs text-gray-500">در انتظار پشتیبان</p>
                   </div>
@@ -68,7 +68,7 @@ export default function AgentChatsPage() {
                   className="flex flex-col gap-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                   <div>
                     <p className="font-medium text-black text-sm">
-                      کاربر: {room.userId}
+                      کاربر: {room.client}
                     </p>
                     <p className="text-xs text-gray-500">گفتگوی فعال</p>
                   </div>

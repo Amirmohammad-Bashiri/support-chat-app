@@ -2,18 +2,27 @@ import { create } from "zustand";
 import type { Socket } from "socket.io-client";
 
 export interface Message {
-  id: string;
+  id: number;
   text: string;
-  senderId: number;
-  timestamp: Date;
+  support_chat_set: number;
+  is_edited: boolean;
+  created_at: string;
+  created_by: number;
+  message_type: number;
+  is_deleted: boolean;
 }
 
 export interface Room {
-  id: string;
-  userId: string;
-  agentId: string | null;
-  messages: Message[];
-  isActive: boolean;
+  id: number;
+  name: string;
+  agent: number;
+  client: number;
+  is_active: boolean;
+  agent_joined_at: string | null;
+  closed_by: number | null;
+  created_at: string;
+  closed_at: string | null;
+  expire_date: string;
 }
 
 interface SocketStore {
@@ -21,30 +30,30 @@ interface SocketStore {
   isConnected: boolean;
   isAgent: boolean;
   rooms: Room[];
-  currentRoom: string | null;
+  currentRoom: number | null; // Change type to match Room.id
   setSocket: (socket: Socket | null) => void;
   setIsConnected: (isConnected: boolean) => void;
   setIsAgent: (isAgent: boolean) => void;
   setRooms: (rooms: Room[]) => void;
   addRoom: (room: Room) => void;
-  updateRoom: (roomId: string, updates: Partial<Room>) => void;
-  setCurrentRoom: (roomId: string | null) => void;
-  addMessage: (roomId: string, message: Message) => void;
-  removeRoom: (roomId: string) => void;
+  updateRoom: (roomId: number, updates: Partial<Room>) => void; // Update type
+  setCurrentRoom: (roomId: number | null) => void; // Update type
+  addMessage: (roomId: number, message: Message) => void; // Update to handle messages separately
+  removeRoom: (roomId: number) => void; // Update type
 }
 
-export const useSocketStore = create<SocketStore>(set => ({
+export const useSocketStore = create<SocketStore>((set, get) => ({
   socket: null,
   isConnected: false,
   isAgent: false,
   rooms: [],
   currentRoom: null,
-  // Only update if the socket instance is actually different
-  setSocket: socket =>
-    set(state => {
-      if (state.socket === socket) return state;
-      return { socket };
-    }),
+  setSocket: socket => {
+    const currentSocket = get().socket;
+    if (currentSocket === socket) return;
+
+    set({ socket });
+  },
   setIsConnected: isConnected => set({ isConnected }),
   setIsAgent: isAgent => set({ isAgent }),
   setRooms: rooms => set({ rooms }),
@@ -56,14 +65,9 @@ export const useSocketStore = create<SocketStore>(set => ({
       ),
     })),
   setCurrentRoom: roomId => set({ currentRoom: roomId }),
-  addMessage: (roomId, message) =>
-    set(state => ({
-      rooms: state.rooms.map(room =>
-        room.id === roomId
-          ? { ...room, messages: [...room.messages, message] }
-          : room
-      ),
-    })),
+  addMessage: (roomId, message) => {
+    console.log(`Message added to room ${roomId}:`, message);
+  },
   removeRoom: roomId =>
     set(state => ({
       rooms: state.rooms.filter(room => room.id !== roomId),

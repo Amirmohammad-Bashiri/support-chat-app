@@ -8,7 +8,7 @@ import { ChatInterface } from "@/components/chat-interface";
 
 export default function ChatRoomPage() {
   const params = useParams();
-  const roomId = params.roomId as string;
+  const roomId = parseInt(params.roomId as string, 10); // Parse roomId as a number
   const { rooms, currentRoom, setCurrentRoom } = useSupport();
 
   useEffect(() => {
