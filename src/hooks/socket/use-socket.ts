@@ -1,14 +1,17 @@
 import { useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 import { useSocketStore, Message, Room } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 
 export const useSocketConnection = () => {
-  const { isConnected } = useSocketStore(); // Removed socket event handling
+  const { isConnected } = useSocketStore();
   return { isConnected };
 };
 
 export const useSupport = () => {
+  const router = useRouter();
+
   const {
     socket,
     isConnected,
@@ -24,12 +27,15 @@ export const useSupport = () => {
   } = useSocketStore();
   const { user } = useUserStore();
 
-  const requestSupport = useCallback(() => {
-    console.log(socket && isConnected && !isAgent);
-    if (socket && isConnected && !isAgent) {
-      socket.emit("request_support_chat", {});
-    }
-  }, [socket, isConnected, isAgent]);
+  const requestSupport = useCallback(
+    (subject: string, description: string) => {
+      if (socket && isConnected && !isAgent) {
+        socket.emit("request_support_chat", { subject, description });
+        router.push("/user/chats");
+      }
+    },
+    [socket, isConnected, isAgent, router]
+  );
 
   const joinRoom = useCallback(
     (roomId: number) => {
@@ -46,8 +52,6 @@ export const useSupport = () => {
       socket.on("user_created_room", (room: Room) => {
         console.log("Data received from user_created_room event:", room);
         setCurrentRoom(room.id); // Set the current room
-        // socket.emit("join_room", room.id); // Join the user to the room
-        // console.log(`Joined room with ID: ${room.id}`);
       });
 
       return () => {
@@ -151,7 +155,7 @@ export const useSupport = () => {
   ]);
 
   return {
-    socket, // Include socket in the return value
+    socket,
     rooms,
     currentRoom,
     setCurrentRoom,
@@ -159,6 +163,6 @@ export const useSupport = () => {
     joinRoom,
     sendMessage,
     endConversation,
-    listenToUserCreatedRoom, // Expose the listener
+    listenToUserCreatedRoom,
   };
 };

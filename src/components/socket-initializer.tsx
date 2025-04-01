@@ -56,7 +56,7 @@ export function SocketInitializer() {
       // Handle ping-pong events
       newSocket.on("ping", () => {
         console.log("Ping received, sending pong...");
-        newSocket.emit("pong");
+        newSocket.emit("pong", {});
       });
 
       // Cleanup on unmount

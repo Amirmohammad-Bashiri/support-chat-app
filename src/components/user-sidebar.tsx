@@ -12,12 +12,12 @@ export function UserSidebar() {
   const navItems = [
     {
       name: "درخواست پشتیبانی",
-      href: "/support",
+      href: "/user/support",
       icon: HelpCircle,
     },
     {
-      name: "اتاق گفتگو",
-      href: "/chat-room/123",
+      name: "اتاق های گفتگو",
+      href: "/user/chats",
       icon: MessageCircle,
     },
   ];
