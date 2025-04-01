@@ -1,4 +1,5 @@
 import useSWR from "swr";
+
 import type { Room } from "@/store/socket-store";
 
 const fetcher = (url: string) =>
