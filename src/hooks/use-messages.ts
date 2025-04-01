@@ -1,18 +1,45 @@
-import useSWR from "swr";
-import axios from "axios";
+import { useState, useEffect, useCallback } from "react";
 
-const fetcher = (url: string) => axios.get(url).then(res => res.data);
+import axiosInstance from "@/api/axios-instance";
 
-export function useMessages(roomId: number) {
-  const { data, error, isLoading, mutate } = useSWR(
-    `http://localhost:85/v1/support_chat/messages/?roomId=${roomId}`,
-    fetcher
+import type { Message } from "@/store/socket-store";
+
+export function useMessages(supportChatSetId: number, initialPage: number = 1) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [page, setPage] = useState(initialPage);
+  const [hasMore, setHasMore] = useState(true);
+
+  const fetchMessages = useCallback(
+    async (page: number) => {
+      try {
+        setIsLoading(true);
+        const { data } = await axiosInstance.get(
+          `/v1/support_chat/messages?support_chat_set_id=${Number(
+            supportChatSetId
+          )}&page=${page}`
+        );
+        const newMessages: Message[] = data.messages || [];
+        setMessages(prev => [...prev, ...newMessages]);
+        setHasMore(newMessages.length > 0);
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+        setIsError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [supportChatSetId]
   );
 
-  return {
-    messages: data,
-    isLoading,
-    isError: !!error,
-    mutate,
+  useEffect(() => {
+    fetchMessages(page);
+  }, [page, fetchMessages]);
+
+  const loadMore = () => {
+    if (hasMore && !isLoading) setPage(prev => prev + 1);
   };
+
+  return { messages, isLoading, isError, loadMore, hasMore };
 }

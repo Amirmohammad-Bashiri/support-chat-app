@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useSupport } from "@/hooks/socket/use-socket";
 import { useMessages } from "@/hooks/use-messages";
-import { useUserStore } from "@/store/user-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
@@ -25,23 +24,41 @@ interface ChatInterfaceProps {
 export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
   const [message, setMessage] = useState("");
   const { sendMessage, endConversation } = useSupport();
-  const { messages, isLoading, isError, mutate } = useMessages(room.id);
-  const { user } = useUserStore();
+  const { messages, isLoading, isError, loadMore, hasMore } = useMessages(
+    Number(room.id), // Ensure room.id is treated as a number
+    1
+  );
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim()) {
-      await sendMessage(message);
-      setMessage("");
-      mutate(); // Refresh messages after sending
-    }
+    if (!message.trim()) return;
+    await sendMessage(message);
+    setMessage("");
   };
 
-  const handleEndChat = () => {
-    if (isAgent) {
-      endConversation();
-    }
-  };
+  const handleEndChat = () => isAgent && endConversation();
+
+  const renderMessages = () =>
+    messages.map(msg => {
+      const isCurrentUser = msg.created_by === room.client; // Use created_by instead of senderId
+      return (
+        <div
+          key={msg.id}
+          className={`flex ${isCurrentUser ? "justify-start" : "justify-end"}`}>
+          <div
+            className={`max-w-[70%] rounded-lg px-4 py-2 ${
+              isCurrentUser
+                ? "bg-black text-white"
+                : "bg-white text-black shadow border border-gray-200"
+            }`}>
+            <p>{msg.text}</p>
+            <p className="text-xs opacity-70 mt-1">
+              {new Date(msg.created_at).toLocaleTimeString()}
+            </p>
+          </div>
+        </div>
+      );
+    });
 
   return (
     <Card className="h-[calc(100vh-8rem)] flex flex-col" dir="rtl">
@@ -57,32 +74,16 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto p-4 bg-gray-50">
+      <CardContent
+        className="flex-1 overflow-y-auto p-4 bg-gray-50"
+        onScroll={e => {
+          const target = e.target as HTMLElement;
+          if (target.scrollTop === 0 && hasMore && !isLoading) loadMore();
+        }}>
         <div className="space-y-4">
           {isLoading && <p>در حال بارگذاری پیام‌ها...</p>}
           {isError && <p>خطا در بارگذاری پیام‌ها</p>}
-          {messages?.map(msg => {
-            const isCurrentUser = msg.senderId === room.client; // Adjust logic as needed
-            return (
-              <div
-                key={msg.id}
-                className={`flex ${
-                  isCurrentUser ? "justify-start" : "justify-end"
-                }`}>
-                <div
-                  className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                    isCurrentUser
-                      ? "bg-black text-white"
-                      : "bg-white text-black shadow border border-gray-200"
-                  }`}>
-                  <p>{msg.text}</p>
-                  <p className="text-xs opacity-70 mt-1">
-                    {new Date(msg.timestamp).toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+          {renderMessages()}
         </div>
       </CardContent>
       <CardFooter className="border-t p-4">

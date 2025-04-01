@@ -92,11 +92,6 @@ export function SocketInitializer() {
       }));
 
       setRooms(rooms); // Update the rooms in the socket store
-
-      // Set the current room and redirect the user
-      const firstRoom = rooms[0];
-      setCurrentRoom(firstRoom.id);
-      router.replace(`/user/chat/${firstRoom.id}`);
     }
   }, [
     user?.role_name,
