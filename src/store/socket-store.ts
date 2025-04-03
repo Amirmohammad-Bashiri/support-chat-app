@@ -15,6 +15,8 @@ export interface Message {
 export interface Room {
   id: number;
   name: string;
+  subject: string;
+  description?: string;
   agent: number;
   client: number;
   is_active: boolean;

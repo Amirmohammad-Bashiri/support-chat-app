@@ -1,17 +1,14 @@
 import useSWR from "swr";
+
+import axiosInstance from "@/api/axios-instance";
+
 import type { Room } from "@/store/socket-store";
 
-const fetcher = (url: string) =>
-  fetch(url, { credentials: "include" }).then(res => {
-    if (!res.ok) {
-      throw new Error("Failed to fetch admin opened chat rooms");
-    }
-    return res.json();
-  });
+const fetcher = (url: string) => axiosInstance.get(url).then(res => res.data);
 
-export function useAdminOpenedChatRooms() {
+export function useAdminOpenedChatRooms(roomType: "pending" | "active") {
   const { data, error, isLoading } = useSWR<Room[]>(
-    "http://localhost:85/v1/support_chat/admin/opened-chat-rooms/",
+    `/v1/support_chat/admin/opened-chat-rooms/?mode=${roomType}`,
     fetcher
   );
 

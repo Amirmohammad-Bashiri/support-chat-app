@@ -1,19 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, MessageSquare, Menu } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { useSupport } from "@/hooks/socket/use-socket";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export function AgentSidebar() {
   const pathname = usePathname();
   const { rooms } = useSupport();
   const [isOpen, setIsOpen] = useState(false);
-
-  const pendingRooms = rooms.filter(room => !room.agent);
 
   const navItems = [
     {
@@ -22,10 +21,13 @@ export function AgentSidebar() {
       icon: LayoutDashboard,
     },
     {
-      name: `گفتگوها ${
-        pendingRooms.length > 0 ? `(${pendingRooms.length})` : ""
-      }`,
-      href: "/agent/chats",
+      name: "گفتگوهای در انتظار",
+      href: "/agent/pending-chats",
+      icon: MessageSquare,
+    },
+    {
+      name: "گفتگوهای فعال",
+      href: "/agent/active-chats",
       icon: MessageSquare,
     },
   ];
