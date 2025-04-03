@@ -64,9 +64,7 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
     <Card className="h-[calc(100vh-8rem)] flex flex-col" dir="rtl">
       <CardHeader className="border-b bg-black text-white">
         <CardTitle className="flex justify-between items-center">
-          <span>
-            {isAgent ? `گفتگو با کاربر: ${room.client}` : "گفتگوی پشتیبانی"}
-          </span>
+          <span>{isAgent ? `موضوع: ${room.subject}` : "موضوع"}</span>
           {isAgent && (
             <Button variant="destructive" onClick={handleEndChat}>
               پایان گفتگو
