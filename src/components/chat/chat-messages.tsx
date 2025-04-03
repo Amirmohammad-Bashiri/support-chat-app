@@ -1,3 +1,4 @@
+import { useUserStore } from "@/store/user-store"; // Import user-store
 import type { Room, Message } from "@/store/socket-store";
 
 interface ChatMessagesProps {
@@ -6,6 +7,8 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ messages, room }: ChatMessagesProps) {
+  const { user } = useUserStore(); // Access the current user
+
   const uniqueMessages = Array.from(
     new Map(messages.map(msg => [msg.id, msg])).values()
   );
@@ -14,6 +17,8 @@ export function ChatMessages({ messages, room }: ChatMessagesProps) {
     <div className="space-y-4">
       {uniqueMessages.map(msg => {
         const isCurrentUser = msg.created_by === room.client;
+        const isSentByCurrentUser = msg.created_by === user?.id; // Check if the message was sent by the current user
+
         return (
           <div
             key={msg.id}
@@ -30,6 +35,10 @@ export function ChatMessages({ messages, room }: ChatMessagesProps) {
               <p className="text-xs opacity-70 mt-1">
                 {new Date(msg.created_at).toLocaleTimeString()}
               </p>
+              {msg.is_read &&
+                isSentByCurrentUser && ( // Show "is_read" only for messages sent by the current user
+                  <p className="text-xs text-green-500 mt-1">خوانده شده</p>
+                )}
             </div>
           </div>
         );

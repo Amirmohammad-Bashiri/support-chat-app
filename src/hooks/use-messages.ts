@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-
 import { useSocketStore } from "@/store/socket-store";
+import { useUserStore } from "@/store/user-store"; // Import user-store
 import axiosInstance from "@/api/axios-instance";
 
 import type { Message } from "@/store/socket-store";
@@ -13,6 +13,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   const [hasMore, setHasMore] = useState(true);
 
   const { socket } = useSocketStore(); // Access socket from the store
+  const { user } = useUserStore(); // Access user from the user-store
 
   const fetchMessages = useCallback(
     async (page: number) => {
@@ -63,6 +64,23 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     [supportChatSetId]
   );
 
+  const markMessagesAsRead = useCallback(() => {
+    if (socket && messages.length > 0) {
+      const unreadMessageIds = messages
+        .filter(msg => !msg.is_read && msg.created_by !== user?.id) // Only mark messages not sent by the current user
+        .map(msg => msg.id);
+
+      if (unreadMessageIds.length > 0) {
+        socket.emit("read_message", { list_of_message_id: unreadMessageIds });
+        setMessages(prev =>
+          prev.map(msg =>
+            unreadMessageIds.includes(msg.id) ? { ...msg, is_read: true } : msg
+          )
+        );
+      }
+    }
+  }, [socket, messages, user?.id]);
+
   useEffect(() => {
     fetchMessages(page); // Fetch messages whenever the page changes
   }, [page, fetchMessages]);
@@ -83,6 +101,11 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
       };
     }
   }, [socket, handleNewMessage]);
+
+  useEffect(() => {
+    // Automatically mark messages as read when they are loaded
+    markMessagesAsRead();
+  }, [messages, markMessagesAsRead]);
 
   const loadMore = () => {
     if (hasMore && !isLoading) {
