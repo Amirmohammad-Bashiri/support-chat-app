@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSupport } from "@/hooks/socket/use-socket";
 import { useMessages } from "@/hooks/use-messages";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useInView } from "react-intersection-observer"; // Import the hook
+import { Spinner } from "@/components/ui/spinner";
 
 import type { Room } from "@/store/socket-store";
 
@@ -29,6 +31,18 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
     1
   );
 
+  const { ref, inView } = useInView({
+    threshold: 0.1, // Trigger when 10% of the element is visible
+    triggerOnce: false, // Allow repeated triggers
+  });
+
+  // Use useEffect to handle loadMore when inView changes
+  useEffect(() => {
+    if (inView && hasMore && !isLoading) {
+      loadMore();
+    }
+  }, [inView, hasMore, isLoading, loadMore]);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -40,13 +54,12 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
   const handleEndChat = () => isAgent && endConversation();
 
   const renderMessages = () => {
-    // Filter messages to ensure unique keys
     const uniqueMessages = Array.from(
       new Map(messages.map(msg => [msg.id, msg])).values()
     );
 
     return uniqueMessages.map(msg => {
-      const isCurrentUser = msg.created_by === room.client; // Use created_by instead of senderId
+      const isCurrentUser = msg.created_by === room.client;
       return (
         <div
           key={msg.id}
@@ -79,16 +92,12 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent
-        className="flex-1 overflow-y-auto p-4 bg-gray-50"
-        onScroll={e => {
-          const target = e.target as HTMLElement;
-          if (target.scrollTop === 0 && hasMore && !isLoading) loadMore();
-        }}>
+      <CardContent className="flex-1 overflow-y-auto p-4 bg-gray-50">
+        <div ref={ref} className="h-1" /> {/* Intersection observer trigger */}
         <div className="space-y-4">
-          {isLoading && <p>در حال بارگذاری پیام‌ها...</p>}
-          {isError && <p>خطا در بارگذاری پیام‌ها</p>}
           {renderMessages()}
+          {isLoading && <Spinner />} {/* Show spinner when loading */}
+          {isError && <p>خطا در بارگذاری پیام‌ها</p>}
         </div>
       </CardContent>
       <CardFooter className="border-t p-4">

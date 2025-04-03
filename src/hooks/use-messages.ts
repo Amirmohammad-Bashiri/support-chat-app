@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSocketStore } from "@/store/socket-store"; // Import socket store
 
+import { useSocketStore } from "@/store/socket-store";
 import axiosInstance from "@/api/axios-instance";
 
 import type { Message } from "@/store/socket-store";
@@ -24,7 +24,16 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
           )}&page=${page}`
         );
         const newMessages: Message[] = data.results || []; // Use results array from the response
-        setMessages(prev => [...prev, ...newMessages]);
+
+        setMessages(prev => {
+          // Avoid adding duplicate messages
+          const existingIds = new Set(prev.map(msg => msg.id));
+          const filteredMessages = newMessages.filter(
+            msg => !existingIds.has(msg.id)
+          );
+          return [...prev, ...filteredMessages];
+        });
+
         setHasMore(data.next !== null); // Check if there's a next page
       } catch (error) {
         console.error("Error fetching messages:", error);
@@ -38,8 +47,6 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
 
   const handleNewMessage = useCallback(
     (newMessage: Message) => {
-      console.log("Received new message:", newMessage); // Debug log
-
       if (!newMessage || typeof newMessage.support_chat_set === "undefined") {
         console.error("Invalid message received:", newMessage); // Debug log for invalid messages
         return;
@@ -57,18 +64,16 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   );
 
   useEffect(() => {
-    fetchMessages(page);
+    fetchMessages(page); // Fetch messages whenever the page changes
   }, [page, fetchMessages]);
 
   useEffect(() => {
     if (socket) {
       socket.on("user_message", (message: Message) => {
-        console.log("Received user_message:", message); // Log the message
         handleNewMessage(message); // Pass the message directly
       });
 
       socket.on("agent_message", (message: Message) => {
-        console.log("Received agent_message:", message); // Log the message
         handleNewMessage(message); // Pass the message directly
       });
 
@@ -80,7 +85,9 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   }, [socket, handleNewMessage]);
 
   const loadMore = () => {
-    if (hasMore && !isLoading) setPage(prev => prev + 1);
+    if (hasMore && !isLoading) {
+      setPage(prev => prev + 1); // Increment the page number
+    }
   };
 
   return { messages, isLoading, isError, loadMore, hasMore };
