@@ -29,17 +29,23 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
     1
   );
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    await sendMessage(message);
+
+    sendMessage(message);
     setMessage("");
   };
 
   const handleEndChat = () => isAgent && endConversation();
 
-  const renderMessages = () =>
-    messages.map(msg => {
+  const renderMessages = () => {
+    // Filter messages to ensure unique keys
+    const uniqueMessages = Array.from(
+      new Map(messages.map(msg => [msg.id, msg])).values()
+    );
+
+    return uniqueMessages.map(msg => {
       const isCurrentUser = msg.created_by === room.client; // Use created_by instead of senderId
       return (
         <div
@@ -59,6 +65,7 @@ export function ChatInterface({ room, isAgent = false }: ChatInterfaceProps) {
         </div>
       );
     });
+  };
 
   return (
     <Card className="h-[calc(100vh-8rem)] flex flex-col" dir="rtl">

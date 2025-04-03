@@ -40,7 +40,6 @@ interface SocketStore {
   addRoom: (room: Room) => void;
   updateRoom: (roomId: number, updates: Partial<Room>) => void; // Update type
   setCurrentRoom: (roomId: number | null) => void; // Update type
-  addMessage: (roomId: number, message: Message) => void; // Update to handle messages separately
   removeRoom: (roomId: number) => void; // Update type
 }
 
@@ -67,9 +66,6 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
       ),
     })),
   setCurrentRoom: roomId => set({ currentRoom: roomId }),
-  addMessage: (roomId, message) => {
-    console.log(`Message added to room ${roomId}:`, message);
-  },
   removeRoom: roomId =>
     set(state => ({
       rooms: state.rooms.filter(room => room.id !== roomId),

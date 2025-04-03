@@ -22,7 +22,6 @@ export const useSupport = () => {
     addRoom,
     updateRoom,
     setCurrentRoom,
-    addMessage,
     removeRoom,
   } = useSocketStore();
   const { user } = useUserStore();
@@ -63,21 +62,20 @@ export const useSupport = () => {
   const sendMessage = useCallback(
     (text: string) => {
       if (socket && isConnected && currentRoom && user) {
-        const message: Message = {
-          id: Date.now(),
-          text,
-          support_chat_set: currentRoom,
-          is_edited: false,
-          created_at: new Date().toISOString(),
-          created_by: user.id,
-          message_type: 1,
-          is_deleted: false,
-        };
-        socket.emit("send_message", { roomId: currentRoom, message });
-        addMessage(currentRoom, message);
+        if (isAgent) {
+          socket.emit("agent_send_message", {
+            message: text,
+            support_chat_set_id: currentRoom,
+          });
+        } else {
+          socket.emit("user_send_message", {
+            message: text,
+            support_chat_set_id: currentRoom,
+          });
+        }
       }
     },
-    [socket, isConnected, currentRoom, addMessage, user]
+    [socket, isConnected, currentRoom, user, isAgent]
   );
 
   const endConversation = useCallback(() => {
@@ -121,13 +119,6 @@ export const useSupport = () => {
         updateRoom(updatedRoom.id, updatedRoom);
       });
 
-      socket.on(
-        "message_received",
-        ({ roomId, message }: { roomId: number; message: Message }) => {
-          addMessage(roomId, message);
-        }
-      );
-
       socket.on("room_closed", (roomId: number) => {
         removeRoom(roomId);
         if (currentRoom === roomId) {
@@ -138,7 +129,6 @@ export const useSupport = () => {
       return () => {
         socket.off("room_added");
         socket.off("room_updated");
-        socket.off("message_received");
         socket.off("room_closed");
       };
     }
@@ -146,13 +136,55 @@ export const useSupport = () => {
     socket,
     addRoom,
     updateRoom,
-    addMessage,
     removeRoom,
     currentRoom,
     setCurrentRoom,
     isAgent,
     setRooms,
   ]);
+
+  useEffect(() => {
+    if (socket) {
+      // Listen for user_message event
+      socket.on(
+        "user_message",
+        ({
+          support_chat_set_id,
+          message,
+        }: {
+          support_chat_set_id: number;
+          message: Message;
+        }) => {
+          console.log(
+            `New user message for room ${support_chat_set_id}:`,
+            message
+          );
+        }
+      );
+
+      // Listen for agent_message event
+      socket.on(
+        "agent_message",
+        ({
+          support_chat_set_id,
+          message,
+        }: {
+          support_chat_set_id: number;
+          message: Message;
+        }) => {
+          console.log(
+            `New agent message for room ${support_chat_set_id}:`,
+            message
+          );
+        }
+      );
+
+      return () => {
+        socket.off("user_message");
+        socket.off("agent_message");
+      };
+    }
+  }, [socket]);
 
   return {
     socket,
