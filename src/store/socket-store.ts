@@ -10,6 +10,7 @@ export interface Message {
   created_by: number;
   message_type: number;
   is_deleted: boolean;
+  is_read: boolean;
 }
 
 export interface Room {
