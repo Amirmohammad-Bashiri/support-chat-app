@@ -61,6 +61,7 @@ export const useSupport = () => {
 
   const sendMessage = useCallback(
     (text: string) => {
+      console.log("isAgent", currentRoom);
       if (socket && isConnected && currentRoom && user) {
         if (isAgent) {
           socket.emit("agent_send_message", {
