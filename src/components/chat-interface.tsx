@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useInView } from "react-intersection-observer";
+import { Send } from "lucide-react";
+
 import { useSupport } from "@/hooks/socket/use-socket";
 import { useMessages } from "@/hooks/use-messages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -13,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useInView } from "react-intersection-observer"; // Import the hook
 import { Spinner } from "@/components/ui/spinner";
 
 import type { Room } from "@/store/socket-store";

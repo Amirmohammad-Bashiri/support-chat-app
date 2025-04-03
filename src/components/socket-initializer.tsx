@@ -59,6 +59,22 @@ export function SocketInitializer() {
         newSocket.emit("pong", {});
       });
 
+      // Listen for error events
+      newSocket.on("error", (error: string) => {
+        console.error("Socket error:", error);
+      });
+
+      newSocket.on(
+        "validation_error",
+        (error: { message: string; error_code: number }) => {
+          console.error("Validation error:", error);
+        }
+      );
+
+      newSocket.on("permission_denied", (error: string) => {
+        console.error("Permission denied:", error);
+      });
+
       // Cleanup on unmount
       return () => {
         if (socketRef.current) {

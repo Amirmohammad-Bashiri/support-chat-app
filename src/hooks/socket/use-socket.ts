@@ -68,6 +68,7 @@ export const useSupport = () => {
             support_chat_set_id: currentRoom,
           });
         } else {
+          console.log("CALLED", currentRoom, text);
           socket.emit("user_send_message", {
             message: text,
             support_chat_set_id: currentRoom,

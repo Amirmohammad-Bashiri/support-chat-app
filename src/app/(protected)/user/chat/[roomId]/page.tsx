@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { useSupport } from "@/hooks/socket/use-socket";
 import { ChatInterface } from "@/components/chat-interface";
+import { useOpenedChatRooms } from "@/hooks/use-opened-chat-rooms";
 
 import type { Room } from "@/store/socket-store";
 
@@ -15,12 +16,14 @@ export default function ChatRoomPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const router = useRouter();
 
+  const { openedChatRooms } = useOpenedChatRooms();
+
   useEffect(() => {
-    if (rooms.length === 0) {
+    if (openedChatRooms.length === 0) {
       return; // Wait until rooms are populated
     }
 
-    const foundRoom = rooms.find(r => r.id === roomId) ?? null;
+    const foundRoom = openedChatRooms.find(r => r.id === roomId) ?? null;
     setRoom(foundRoom);
 
     if (!foundRoom) {
@@ -31,14 +34,10 @@ export default function ChatRoomPage() {
     if (roomId && roomId !== currentRoom) {
       setCurrentRoom(roomId);
     }
-  }, [roomId, rooms, currentRoom, setCurrentRoom, router]);
+  }, [roomId, openedChatRooms, currentRoom, setCurrentRoom, router]);
 
-  if (!room && rooms.length === 0) {
+  if (!room || rooms.length === 0) {
     return null; // Render nothing while waiting for rooms to populate
-  }
-
-  if (!room) {
-    return null; // Render nothing if no valid room is found
   }
 
   return (
