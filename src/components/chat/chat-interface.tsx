@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { ArrowDown } from "lucide-react";
 
@@ -24,6 +24,7 @@ export function ChatInterface({
   const [message, setMessage] = useState("");
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
+  const [initialRender, setInitialRender] = useState(true);
 
   const { sendMessage, endConversation } = useSupport();
   const {
@@ -33,17 +34,17 @@ export function ChatInterface({
     loadMore,
     hasMore,
     chatContainerRef,
-    onNewMessage, // New callback from useMessages hook
+    onNewMessage,
   } = useMessages(Number(room.id), 1);
 
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: false,
+    rootMargin: "200px 0px 0px 0px",
   });
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Handle scroll position detection
   const handleScroll = () => {
     if (!chatContainerRef.current) return;
 
@@ -57,7 +58,6 @@ export function ChatInterface({
     }
   };
 
-  // Scroll to bottom function
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop =
@@ -67,12 +67,13 @@ export function ChatInterface({
     }
   };
 
-  // Ensure we scroll to bottom on initial load
-  useEffect(() => {
-    setTimeout(scrollToBottom, 100); // Small delay to ensure content is rendered
-  }, []);
+  useLayoutEffect(() => {
+    if (initialRender && messages.length > 0) {
+      scrollToBottom();
+      setInitialRender(false);
+    }
+  }, [messages.length, initialRender]);
 
-  // Register callback for new message events
   useEffect(() => {
     const callback = () => {
       if (!isAtBottom) {
@@ -81,7 +82,7 @@ export function ChatInterface({
     };
 
     onNewMessage(callback);
-    return () => onNewMessage(null); // Clean up
+    return () => onNewMessage(null);
   }, [onNewMessage, isAtBottom]);
 
   useEffect(() => {
@@ -114,13 +115,12 @@ export function ChatInterface({
         ref={chatContainerRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-4 bg-gray-50 relative">
-        <ChatMessages messages={messages} room={room} />
+        <div ref={ref} className="h-1" />
         {isLoading && <Spinner />}
+        <ChatMessages messages={messages} room={room} />
         {isError && <p>خطا در بارگذاری پیام‌ها</p>}
         <div ref={messagesEndRef} />
-        <div ref={ref} className="h-1" />
 
-        {/* New Messages Button - truly event-based */}
         {showNewMessageButton && (
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
             <Button

@@ -20,106 +20,63 @@ const fetcher = async (url: string) => {
 
 export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   const [page, setPage] = useState(initialPage);
-  const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const newMessageCallbackRef = useRef<(() => void) | null>(null);
-
+  const messageCallbackRef = useRef<(() => void) | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const { socket } = useSocketStore();
   const { user } = useUserStore();
 
   // Use SWR for fetching messages
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isLoading } = useSWR(
     `/v1/support_chat/messages?support_chat_set_id=${supportChatSetId}&page=${page}`,
     fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateIfStale: true,
-    }
+    { revalidateOnFocus: false }
   );
 
-  // Function to register a callback for new messages
+  // Register callback for new message notifications
   const onNewMessage = useCallback((callback: (() => void) | null) => {
-    newMessageCallbackRef.current = callback;
+    messageCallbackRef.current = callback;
   }, []);
 
-  // Process new messages from SWR data
+  // Handle messages from API
   useEffect(() => {
-    if (data?.results) {
-      setAllMessages(prev => {
-        // Filter out duplicates
-        const existingIds = new Set(prev.map(msg => msg.id));
-        const filteredMessages = data.results.filter(
-          msg => !existingIds.has(msg.id)
-        );
+    if (!data?.results) return;
 
-        // Combine existing and new messages
-        const combinedMessages = [...prev, ...filteredMessages];
-
-        // Sort by created_at timestamp
-        return combinedMessages.sort(
-          (a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-      });
+    if (page === initialPage) {
+      // For the initial page, replace the messages
+      setMessages(data.results);
+    } else {
+      // For subsequent pages, append older messages
+      setMessages(prev => [...prev, ...data.results]);
     }
-  }, [data]);
+  }, [data, page, initialPage]);
 
-  const handleNewMessage = useCallback(
-    (newMessage: Message) => {
-      if (!newMessage || newMessage.support_chat_set !== supportChatSetId) {
-        return;
-      }
-
-      setAllMessages(prev => {
-        if (prev.some(msg => msg.id === newMessage.id)) return prev;
-
-        // Call the callback when a new message arrives
-        if (newMessageCallbackRef.current) {
-          newMessageCallbackRef.current();
-        }
-
-        return [...prev, newMessage];
-      });
-
-      // Revalidate the data
-      mutate();
-    },
-    [supportChatSetId, mutate]
-  );
-
-  const handleScroll = () => {
-    if (!chatContainerRef.current) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-    setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 10);
-  };
-
-  // Add scroll event listener
-  useEffect(() => {
-    const chatContainer = chatContainerRef.current;
-    if (chatContainer) {
-      chatContainer.addEventListener("scroll", handleScroll);
-    }
-
-    return () => {
-      if (chatContainer) {
-        chatContainer.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, []);
-
-  // Socket event listeners
+  // Handle real-time messages
   useEffect(() => {
     if (!socket) return;
+
+    const handleNewMessage = (newMessage: Message) => {
+      if (newMessage.support_chat_set !== supportChatSetId) return;
+
+      setMessages(prev => {
+        // Skip if we already have this message
+        if (prev.some(msg => msg.id === newMessage.id)) return prev;
+
+        // Notify about new message (for the "new messages" button)
+        if (messageCallbackRef.current) messageCallbackRef.current();
+
+        // Add new message at the end
+        return [...prev, newMessage];
+      });
+    };
 
     socket.on("user_message", handleNewMessage);
     socket.on("agent_message", handleNewMessage);
 
     socket.on("message_read", (data: { list_message_instance: Message[] }) => {
-      setAllMessages(prev =>
+      setMessages(prev =>
         prev.map(
           msg =>
             data.list_message_instance.find(updated => updated.id === msg.id) ||
@@ -129,47 +86,36 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     });
 
     return () => {
-      socket.off("user_message", handleNewMessage);
-      socket.off("agent_message", handleNewMessage);
+      socket.off("user_message");
+      socket.off("agent_message");
       socket.off("message_read");
     };
-  }, [socket, handleNewMessage]);
+  }, [socket, supportChatSetId]);
 
-  // Auto-scroll to bottom for new messages
+  // Mark messages as read when visible
   useEffect(() => {
-    if (isAtBottom && chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
-    }
-  }, [allMessages, isAtBottom]);
-
-  // Intersection Observer for marking messages as read
-  useEffect(() => {
-    if (!chatContainerRef.current) return;
+    if (!chatContainerRef.current || !socket || !user || messages.length === 0)
+      return;
 
     const observer = new IntersectionObserver(
       entries => {
         const unreadMessageIds: number[] = [];
+
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const messageId = Number(entry.target.getAttribute("data-id"));
-            const message = allMessages.find(msg => msg.id === messageId);
-            if (
-              message &&
-              !message.is_read &&
-              message.created_by !== user?.id
-            ) {
+            const message = messages.find(msg => msg.id === messageId);
+
+            if (message && !message.is_read && message.created_by !== user.id) {
               unreadMessageIds.push(messageId);
             }
           }
         });
 
-        if (unreadMessageIds.length > 0 && socket) {
-          // Emit the read_message event
+        if (unreadMessageIds.length > 0) {
           socket.emit("read_message", { list_of_message_id: unreadMessageIds });
 
-          // Immediately update the local state to mark messages as read
-          setAllMessages(prev =>
+          setMessages(prev =>
             prev.map(msg =>
               unreadMessageIds.includes(msg.id)
                 ? { ...msg, is_read: true }
@@ -181,21 +127,39 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
       { root: chatContainerRef.current, threshold: 0.1 }
     );
 
-    observerRef.current = observer;
-
     // Observe each message element
-    allMessages.forEach(msg => {
-      const messageElement = document.querySelector(`[data-id="${msg.id}"]`);
-      if (messageElement) {
-        observer.observe(messageElement);
-      }
-    });
+    const messageElements = document.querySelectorAll("[data-id]");
+    messageElements.forEach(el => observer.observe(el));
 
-    return () => {
-      observer.disconnect();
+    return () => observer.disconnect();
+  }, [messages, socket, user]);
+
+  // Handle scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!chatContainerRef.current) return;
+
+      const { scrollTop, scrollHeight, clientHeight } =
+        chatContainerRef.current;
+      setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 10);
     };
-  }, [allMessages, socket, user?.id]);
 
+    const container = chatContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScroll);
+      return () => container.removeEventListener("scroll", handleScroll);
+    }
+  }, []);
+
+  // Auto-scroll to bottom for new messages when already at bottom
+  useEffect(() => {
+    if (isAtBottom && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [messages.length, isAtBottom]);
+
+  // Simple load more function for pagination
   const loadMore = useCallback(() => {
     if (data?.next && !isLoading) {
       setPage(prev => prev + 1);
@@ -203,12 +167,12 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   }, [data?.next, isLoading]);
 
   return {
-    messages: allMessages,
+    messages,
     isLoading,
     isError: !!error,
     loadMore,
     hasMore: !!data?.next,
     chatContainerRef,
-    onNewMessage, // Expose the callback registration function
+    onNewMessage,
   };
 }
