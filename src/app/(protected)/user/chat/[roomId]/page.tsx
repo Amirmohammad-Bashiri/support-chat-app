@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { useSupport } from "@/hooks/socket/use-socket";
-import { ChatInterface } from "@/components/chat-interface";
+import { ChatInterface } from "@/components/chat/chat-interface";
 import { useOpenedChatRooms } from "@/hooks/use-opened-chat-rooms";
 
 import type { Room } from "@/store/socket-store";

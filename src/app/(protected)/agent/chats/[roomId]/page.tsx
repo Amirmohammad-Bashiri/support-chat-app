@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
 
-import { ChatInterface } from "@/components/chat-interface";
+import { ChatInterface } from "@/components/chat/chat-interface";
 import { useSupport } from "@/hooks/socket/use-socket";
 import { useAdminOpenedChatRooms } from "@/hooks/use-admin-opened-chat-rooms";
 

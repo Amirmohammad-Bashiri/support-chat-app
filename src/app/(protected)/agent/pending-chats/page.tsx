@@ -27,8 +27,6 @@ export default function PendingChatsPage() {
     router.push(`/agent/chats/${roomId}`); // Navigate to the chat room
   };
 
-  console.log(adminOpenedChatRooms);
-
   if (isLoading) {
     return (
       <main className="container mx-auto py-6">
