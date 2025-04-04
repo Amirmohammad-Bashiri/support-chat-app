@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import useSWR from "swr";
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 import axiosInstance from "@/api/axios-instance";
@@ -13,46 +12,57 @@ interface MessagesResponse {
   results: Message[];
 }
 
-const fetcher = async (url: string) => {
-  const response = await axiosInstance.get(url);
-  return response.data as MessagesResponse;
-};
-
 export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   const [page, setPage] = useState(initialPage);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const messageCallbackRef = useRef<(() => void) | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const { socket } = useSocketStore();
   const { user } = useUserStore();
 
-  // Use SWR for fetching messages
-  const { data, error, isLoading } = useSWR(
-    `/v1/support_chat/messages?support_chat_set_id=${supportChatSetId}&page=${page}`,
-    fetcher,
-    { revalidateOnFocus: false }
+  // Fetch messages manually
+  const fetchMessages = useCallback(
+    async (pageToFetch: number) => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await axiosInstance.get<MessagesResponse>(
+          `/v1/support_chat/messages?support_chat_set_id=${supportChatSetId}&page=${pageToFetch}`
+        );
+
+        const { results, next } = response.data;
+
+        if (pageToFetch === initialPage) {
+          setMessages(results);
+        } else {
+          setMessages(prev => [...results, ...prev]);
+        }
+
+        setHasMore(!!next);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [supportChatSetId, initialPage]
   );
+
+  // Fetch messages when the page changes
+  useEffect(() => {
+    fetchMessages(page);
+  }, [page, fetchMessages]);
 
   // Register callback for new message notifications
   const onNewMessage = useCallback((callback: (() => void) | null) => {
     messageCallbackRef.current = callback;
   }, []);
-
-  console.log("messages", data);
-  // Handle messages from API
-  useEffect(() => {
-    if (!data?.results) return;
-
-    if (page === initialPage) {
-      // For the initial page, replace the messages
-      setMessages(data.results);
-    } else {
-      // For subsequent pages, append older messages
-      setMessages(prev => [...data.results, ...prev]);
-    }
-  }, [data, page, initialPage]);
 
   // Handle real-time messages
   useEffect(() => {
@@ -162,17 +172,17 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
 
   // Simple load more function for pagination
   const loadMore = useCallback(() => {
-    if (data?.next && !isLoading) {
+    if (hasMore && !isLoading) {
       setPage(prev => prev + 1);
     }
-  }, [data?.next, isLoading]);
+  }, [hasMore, isLoading]);
 
   return {
     messages,
     isLoading,
     isError: !!error,
     loadMore,
-    hasMore: !!data?.next,
+    hasMore,
     chatContainerRef,
     onNewMessage,
   };
