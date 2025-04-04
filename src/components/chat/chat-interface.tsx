@@ -22,13 +22,19 @@ export function ChatInterface({
   isAgent?: boolean;
 }) {
   const [message, setMessage] = useState("");
-  const [hasNewMessages, setHasNewMessages] = useState(false);
-  const [lastMessageCount, setLastMessageCount] = useState(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showNewMessageButton, setShowNewMessageButton] = useState(false);
 
   const { sendMessage, endConversation } = useSupport();
-  const { messages, isLoading, isError, loadMore, hasMore, chatContainerRef } =
-    useMessages(Number(room.id), 1);
+  const {
+    messages,
+    isLoading,
+    isError,
+    loadMore,
+    hasMore,
+    chatContainerRef,
+    onNewMessage, // New callback from useMessages hook
+  } = useMessages(Number(room.id), 1);
 
   const { ref, inView } = useInView({
     threshold: 0.1,
@@ -37,15 +43,7 @@ export function ChatInterface({
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const scrollToBottom = () => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
-      setIsAtBottom(true);
-      setHasNewMessages(false);
-    }
-  };
-
+  // Handle scroll position detection
   const handleScroll = () => {
     if (!chatContainerRef.current) return;
 
@@ -55,17 +53,36 @@ export function ChatInterface({
     setIsAtBottom(userIsAtBottom);
 
     if (userIsAtBottom) {
-      setHasNewMessages(false);
+      setShowNewMessageButton(false);
     }
   };
 
-  // Check for new messages when messages array changes
-  useEffect(() => {
-    if (messages.length > lastMessageCount && !isAtBottom) {
-      setHasNewMessages(true);
+  // Scroll to bottom function
+  const scrollToBottom = () => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+      setIsAtBottom(true);
+      setShowNewMessageButton(false);
     }
-    setLastMessageCount(messages.length);
-  }, [messages.length, isAtBottom, lastMessageCount]);
+  };
+
+  // Ensure we scroll to bottom on initial load
+  useEffect(() => {
+    setTimeout(scrollToBottom, 100); // Small delay to ensure content is rendered
+  }, []);
+
+  // Register callback for new message events
+  useEffect(() => {
+    const callback = () => {
+      if (!isAtBottom) {
+        setShowNewMessageButton(true);
+      }
+    };
+
+    onNewMessage(callback);
+    return () => onNewMessage(null); // Clean up
+  }, [onNewMessage, isAtBottom]);
 
   useEffect(() => {
     if (inView && hasMore && !isLoading) {
@@ -75,7 +92,6 @@ export function ChatInterface({
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
-
     sendMessage(message);
     setMessage("");
     scrollToBottom();
@@ -104,8 +120,8 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
         <div ref={ref} className="h-1" />
 
-        {/* New Messages Button */}
-        {hasNewMessages && !isAtBottom && (
+        {/* New Messages Button - truly event-based */}
+        {showNewMessageButton && (
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
             <Button
               onClick={scrollToBottom}

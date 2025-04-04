@@ -1,54 +1,71 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import useSWR from "swr";
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 import axiosInstance from "@/api/axios-instance";
 
 import type { Message } from "@/store/socket-store";
 
-export function useMessages(supportChatSetId: number, initialPage: number = 1) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [page, setPage] = useState(initialPage);
-  const [hasMore, setHasMore] = useState(true);
-  const [isAtBottom, setIsAtBottom] = useState(true);
+interface MessagesResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Message[];
+}
 
-  const { socket } = useSocketStore();
-  const { user } = useUserStore();
+const fetcher = async (url: string) => {
+  const response = await axiosInstance.get(url);
+  return response.data as MessagesResponse;
+};
+
+export function useMessages(supportChatSetId: number, initialPage: number = 1) {
+  const [page, setPage] = useState(initialPage);
+  const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const newMessageCallbackRef = useRef<(() => void) | null>(null);
+
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  const fetchMessages = useCallback(
-    async (page: number) => {
-      try {
-        setIsLoading(true);
-        const { data } = await axiosInstance.get(
-          `/v1/support_chat/messages?support_chat_set_id=${supportChatSetId}&page=${page}`
-        );
-        const newMessages: Message[] = data.results || [];
+  const { socket } = useSocketStore();
+  const { user } = useUserStore();
 
-        setMessages(prev => {
-          const existingIds = new Set(prev.map(msg => msg.id));
-          const filteredMessages = newMessages.filter(
-            msg => !existingIds.has(msg.id)
-          );
-          return [...prev, ...filteredMessages].sort(
-            (a, b) =>
-              new Date(a.created_at).getTime() -
-              new Date(b.created_at).getTime()
-          );
-        });
-
-        setHasMore(data.next !== null);
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-        setIsError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [supportChatSetId]
+  // Use SWR for fetching messages
+  const { data, error, isLoading, mutate } = useSWR(
+    `/v1/support_chat/messages?support_chat_set_id=${supportChatSetId}&page=${page}`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+    }
   );
+
+  // Function to register a callback for new messages
+  const onNewMessage = useCallback((callback: (() => void) | null) => {
+    newMessageCallbackRef.current = callback;
+  }, []);
+
+  // Process new messages from SWR data
+  useEffect(() => {
+    if (data?.results) {
+      setAllMessages(prev => {
+        // Filter out duplicates
+        const existingIds = new Set(prev.map(msg => msg.id));
+        const filteredMessages = data.results.filter(
+          msg => !existingIds.has(msg.id)
+        );
+
+        // Combine existing and new messages
+        const combinedMessages = [...prev, ...filteredMessages];
+
+        // Sort by created_at timestamp
+        return combinedMessages.sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
+    }
+  }, [data]);
 
   const handleNewMessage = useCallback(
     (newMessage: Message) => {
@@ -56,15 +73,24 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
         return;
       }
 
-      setMessages(prev => {
+      setAllMessages(prev => {
         if (prev.some(msg => msg.id === newMessage.id)) return prev;
+
+        // Call the callback when a new message arrives
+        if (newMessageCallbackRef.current) {
+          newMessageCallbackRef.current();
+        }
+
         return [...prev, newMessage].sort(
           (a, b) =>
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
       });
+
+      // Revalidate the data
+      mutate();
     },
-    [supportChatSetId]
+    [supportChatSetId, mutate]
   );
 
   const handleScroll = () => {
@@ -74,6 +100,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 10);
   };
 
+  // Add scroll event listener
   useEffect(() => {
     const chatContainer = chatContainerRef.current;
     if (chatContainer) {
@@ -87,10 +114,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     };
   }, []);
 
-  useEffect(() => {
-    fetchMessages(page);
-  }, [page, fetchMessages]);
-
+  // Socket event listeners
   useEffect(() => {
     if (!socket) return;
 
@@ -98,7 +122,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     socket.on("agent_message", handleNewMessage);
 
     socket.on("message_read", (data: { list_message_instance: Message[] }) => {
-      setMessages(prev =>
+      setAllMessages(prev =>
         prev.map(
           msg =>
             data.list_message_instance.find(updated => updated.id === msg.id) ||
@@ -114,13 +138,15 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     };
   }, [socket, handleNewMessage]);
 
+  // Auto-scroll to bottom for new messages
   useEffect(() => {
     if (isAtBottom && chatContainerRef.current) {
       chatContainerRef.current.scrollTop =
         chatContainerRef.current.scrollHeight;
     }
-  }, [messages, isAtBottom]);
+  }, [allMessages, isAtBottom]);
 
+  // Intersection Observer for marking messages as read
   useEffect(() => {
     if (!chatContainerRef.current) return;
 
@@ -130,7 +156,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const messageId = Number(entry.target.getAttribute("data-id"));
-            const message = messages.find(msg => msg.id === messageId);
+            const message = allMessages.find(msg => msg.id === messageId);
             if (
               message &&
               !message.is_read &&
@@ -146,7 +172,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
           socket.emit("read_message", { list_of_message_id: unreadMessageIds });
 
           // Immediately update the local state to mark messages as read
-          setMessages(prev =>
+          setAllMessages(prev =>
             prev.map(msg =>
               unreadMessageIds.includes(msg.id)
                 ? { ...msg, is_read: true }
@@ -161,7 +187,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     observerRef.current = observer;
 
     // Observe each message element
-    messages.forEach(msg => {
+    allMessages.forEach(msg => {
       const messageElement = document.querySelector(`[data-id="${msg.id}"]`);
       if (messageElement) {
         observer.observe(messageElement);
@@ -171,13 +197,21 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     return () => {
       observer.disconnect();
     };
-  }, [messages, socket, user?.id]);
+  }, [allMessages, socket, user?.id]);
 
-  const loadMore = () => {
-    if (hasMore && !isLoading) {
+  const loadMore = useCallback(() => {
+    if (data?.next && !isLoading) {
       setPage(prev => prev + 1);
     }
-  };
+  }, [data?.next, isLoading]);
 
-  return { messages, isLoading, isError, loadMore, hasMore, chatContainerRef };
+  return {
+    messages: allMessages,
+    isLoading,
+    isError: !!error,
+    loadMore,
+    hasMore: !!data?.next,
+    chatContainerRef,
+    onNewMessage, // Expose the callback registration function
+  };
 }
