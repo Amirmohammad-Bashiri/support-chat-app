@@ -9,7 +9,10 @@ const fetcher = (url: string) => axiosInstance.get(url).then(res => res.data);
 export function useAdminOpenedChatRooms(roomType: "pending" | "active") {
   const { data, error, isLoading } = useSWR<Room[]>(
     `/v1/support_chat/admin/opened-support-chat-set/?mode=${roomType}`,
-    fetcher
+    fetcher,
+    {
+      refreshInterval: 2000,
+    }
   );
 
   return {

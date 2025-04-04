@@ -47,17 +47,19 @@ export const useSupport = () => {
   );
 
   const listenToUserCreatedRoom = useCallback(() => {
-    if (socket) {
+    if (socket && user) {
       socket.on("user_created_room", (room: Room) => {
         console.log("Data received from user_created_room event:", room);
-        setCurrentRoom(room.id); // Set the current room
+        if (user.role_name === "Business Unit Owner") {
+          setCurrentRoom(room.id); // Set the current room
+        }
       });
 
       return () => {
         socket.off("user_created_room"); // Cleanup listener
       };
     }
-  }, [socket, setCurrentRoom]);
+  }, [socket, user, setCurrentRoom]);
 
   const sendMessage = useCallback(
     (text: string) => {

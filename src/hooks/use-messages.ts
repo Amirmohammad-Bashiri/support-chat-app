@@ -40,6 +40,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     messageCallbackRef.current = callback;
   }, []);
 
+  console.log("messages", data);
   // Handle messages from API
   useEffect(() => {
     if (!data?.results) return;
@@ -49,7 +50,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
       setMessages(data.results);
     } else {
       // For subsequent pages, append older messages
-      setMessages(prev => [...prev, ...data.results]);
+      setMessages(prev => [...data.results, ...prev]);
     }
   }, [data, page, initialPage]);
 
