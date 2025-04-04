@@ -52,12 +52,18 @@ export function ChatInterface({
     scrollToBottom();
   };
 
+  const handleEndChat = () => {
+    if (isAgent) {
+      endConversation();
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col relative" dir="rtl">
       <ChatHeader
         subject={room.subject}
         isAgent={isAgent}
-        onEndChat={isAgent ? endConversation : undefined}
+        onEndChat={handleEndChat}
       />
       <div
         ref={chatContainerRef}

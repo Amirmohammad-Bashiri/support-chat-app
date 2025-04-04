@@ -81,12 +81,14 @@ export const useSupport = () => {
   );
 
   const endConversation = useCallback(() => {
-    if (socket && isConnected && currentRoom && isAgent) {
-      socket.emit("end_conversation", currentRoom);
-      removeRoom(currentRoom);
-      setCurrentRoom(null);
+    if (socket && isConnected && currentRoom) {
+      // Use the correct event name with the correct payload format
+      socket.emit("close_support_chat", { support_chat_set_id: currentRoom });
+
+      // For agents, we'll let the room_closed event handler handle removal
+      // No need to immediately remove the room here
     }
-  }, [socket, isConnected, currentRoom, isAgent, removeRoom, setCurrentRoom]);
+  }, [socket, isConnected, currentRoom]);
 
   useEffect(() => {
     if (socket) {
@@ -121,10 +123,18 @@ export const useSupport = () => {
         updateRoom(updatedRoom.id, updatedRoom);
       });
 
-      socket.on("room_closed", (roomId: number) => {
-        removeRoom(roomId);
-        if (currentRoom === roomId) {
+      socket.on("room_closed", (room: Room) => {
+        console.log("Room closed:", room);
+        removeRoom(room.id);
+        if (currentRoom === room.id) {
           setCurrentRoom(null);
+
+          // Redirect based on user role
+          if (isAgent) {
+            router.push("/agent/dashboard");
+          } else {
+            router.push("/user/support");
+          }
         }
       });
 
@@ -143,6 +153,7 @@ export const useSupport = () => {
     setCurrentRoom,
     isAgent,
     setRooms,
+    router,
   ]);
 
   useEffect(() => {
