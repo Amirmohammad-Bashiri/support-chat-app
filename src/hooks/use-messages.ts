@@ -36,7 +36,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     fetcher,
     {
       revalidateOnFocus: false,
-      revalidateIfStale: false,
+      revalidateIfStale: true,
     }
   );
 
@@ -81,10 +81,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
           newMessageCallbackRef.current();
         }
 
-        return [...prev, newMessage].sort(
-          (a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
+        return [...prev, newMessage];
       });
 
       // Revalidate the data
