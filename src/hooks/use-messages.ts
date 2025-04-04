@@ -16,6 +16,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   const { socket } = useSocketStore();
   const { user } = useUserStore();
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const fetchMessages = useCallback(
     async (page: number) => {
@@ -65,23 +66,6 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     },
     [supportChatSetId]
   );
-
-  const markMessagesAsRead = useCallback(() => {
-    if (!socket || !messages.length) return;
-
-    const unreadMessageIds = messages
-      .filter(msg => !msg.is_read && msg.created_by !== user?.id)
-      .map(msg => msg.id);
-
-    if (unreadMessageIds.length > 0) {
-      socket.emit("read_message", { list_of_message_id: unreadMessageIds });
-      setMessages(prev =>
-        prev.map(msg =>
-          unreadMessageIds.includes(msg.id) ? { ...msg, is_read: true } : msg
-        )
-      );
-    }
-  }, [socket, messages, user?.id]);
 
   const handleScroll = () => {
     if (!chatContainerRef.current) return;
@@ -138,8 +122,56 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   }, [messages, isAtBottom]);
 
   useEffect(() => {
-    markMessagesAsRead();
-  }, [messages, markMessagesAsRead]);
+    if (!chatContainerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        const unreadMessageIds: number[] = [];
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const messageId = Number(entry.target.getAttribute("data-id"));
+            const message = messages.find(msg => msg.id === messageId);
+            if (
+              message &&
+              !message.is_read &&
+              message.created_by !== user?.id
+            ) {
+              unreadMessageIds.push(messageId);
+            }
+          }
+        });
+
+        if (unreadMessageIds.length > 0 && socket) {
+          // Emit the read_message event
+          socket.emit("read_message", { list_of_message_id: unreadMessageIds });
+
+          // Immediately update the local state to mark messages as read
+          setMessages(prev =>
+            prev.map(msg =>
+              unreadMessageIds.includes(msg.id)
+                ? { ...msg, is_read: true }
+                : msg
+            )
+          );
+        }
+      },
+      { root: chatContainerRef.current, threshold: 0.1 }
+    );
+
+    observerRef.current = observer;
+
+    // Observe each message element
+    messages.forEach(msg => {
+      const messageElement = document.querySelector(`[data-id="${msg.id}"]`);
+      if (messageElement) {
+        observer.observe(messageElement);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [messages, socket, user?.id]);
 
   const loadMore = () => {
     if (hasMore && !isLoading) {

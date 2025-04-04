@@ -22,6 +22,7 @@ export function ChatMessages({ messages, room }: ChatMessagesProps) {
         return (
           <div
             key={msg.id}
+            data-id={msg.id} // Add data-id for IntersectionObserver
             className={`flex ${
               isCurrentUser ? "justify-start" : "justify-end"
             }`}>
