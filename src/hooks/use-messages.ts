@@ -26,6 +26,8 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   const { socket } = useSocketStore();
   const { user } = useUserStore();
 
+  const latestMessageTimestamp = useRef<string | null>(null);
+
   // Fetch messages manually
   const fetchMessages = useCallback(
     async (pageToFetch: number) => {
@@ -112,24 +114,47 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     };
   }, [socket, supportChatSetId]);
 
+  console.log("latestMessageTimestamp", latestMessageTimestamp);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      const latestMsg = messages[messages.length - 1];
+
+      if (latestMessageTimestamp.current !== latestMsg.created_at) {
+        latestMessageTimestamp.current = latestMsg.created_at;
+      }
+    }
+  }, [messages]);
+
   // Handle reconnections
   // Reload the page to fetch all messages when the socket reconnects
   useEffect(() => {
     if (!socket || !user) return;
 
-    const handleReconnect = () => {
-      if (navigator.onLine) {
-        // Reload the page to fetch all messages
-        window.location.reload();
+    const handleReconnect = async () => {
+      console.log("User is back online. Fetching new messages...");
+      if (!latestMessageTimestamp.current) return;
+
+      try {
+        const response = await axiosInstance.get<MessagesResponse>(
+          `/v1/support_chat/messages/with-time-stamp/?support_chat_set_id=${supportChatSetId}&last_message_timestamp=${latestMessageTimestamp.current}`
+        );
+
+        const { results } = response.data;
+        if (results && Array.isArray(results)) {
+          setMessages(prev => [...prev, ...results]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch new messages:", err);
       }
     };
 
     socket.on("connect", handleReconnect);
 
     return () => {
-      socket.off("connect", handleReconnect);
+      socket.off("connect", handleReconnect); // Proper cleanup
     };
-  }, [socket, user]);
+  }, [socket, user, supportChatSetId]);
 
   // Mark messages as read when visible
   useEffect(() => {
