@@ -112,6 +112,25 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     };
   }, [socket, supportChatSetId]);
 
+  // Handle reconnections
+  // Reload the page to fetch all messages when the socket reconnects
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleReconnect = () => {
+      if (navigator.onLine) {
+        // Reload the page to fetch all messages
+        window.location.reload();
+      }
+    };
+
+    socket.on("connect", handleReconnect);
+
+    return () => {
+      socket.off("connect", handleReconnect);
+    };
+  }, [socket, user]);
+
   // Mark messages as read when visible
   useEffect(() => {
     if (!chatContainerRef.current || !socket || !user || messages.length === 0)
