@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 import axiosInstance from "@/api/axios-instance";
@@ -7,7 +8,7 @@ import type { Message } from "@/store/socket-store";
 
 interface MessagesResponse {
   count: number;
-  next: string | null;
+  next: number | null;
   previous: string | null;
   results: Message[];
 }
@@ -28,6 +29,8 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   // Fetch messages manually
   const fetchMessages = useCallback(
     async (pageToFetch: number) => {
+      if (!hasMore) return; // Prevent unnecessary fetch
+
       setIsLoading(true);
       setError(null);
 
@@ -38,20 +41,26 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
 
         const { results, next } = response.data;
 
+        if (!results || !Array.isArray(results)) {
+          setHasMore(false); // No more pages, stop fetching
+          return;
+        }
+
         if (pageToFetch === initialPage) {
           setMessages(results);
         } else {
           setMessages(prev => [...results, ...prev]);
         }
 
-        setHasMore(!!next);
+        setHasMore(next !== null); // Ensure we stop when there's no next page
       } catch (err) {
+        console.error("Failed to fetch messages:", err);
         setError(err as Error);
       } finally {
         setIsLoading(false);
       }
     },
-    [supportChatSetId, initialPage]
+    [supportChatSetId, initialPage, hasMore]
   );
 
   // Fetch messages when the page changes
@@ -170,11 +179,9 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
     }
   }, [messages.length, isAtBottom]);
 
-  // Simple load more function for pagination
   const loadMore = useCallback(() => {
-    if (hasMore && !isLoading) {
-      setPage(prev => prev + 1);
-    }
+    if (!hasMore || isLoading) return; // Prevent unnecessary fetch attempts
+    setPage(prev => prev + 1);
   }, [hasMore, isLoading]);
 
   return {

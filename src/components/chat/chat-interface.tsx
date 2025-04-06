@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { ArrowDown } from "lucide-react";
 
@@ -37,26 +37,26 @@ export function ChatInterface({
     onNewMessage,
   } = useMessages(Number(room.id), 1);
 
+  // For loading more messages at the top when scrolling up
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: false,
     rootMargin: "200px 0px 0px 0px",
   });
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  // For detecting when user is at the bottom of the chat
+  const { ref: bottomRef, inView: isBottomVisible } = useInView({
+    threshold: 0.5,
+    rootMargin: "0px 0px 10px 0px",
+  });
 
-  const handleScroll = () => {
-    if (!chatContainerRef.current) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-    const userIsAtBottom = scrollTop + clientHeight >= scrollHeight - 20;
-
-    setIsAtBottom(userIsAtBottom);
-
-    if (userIsAtBottom) {
+  // Update isAtBottom state when bottom visibility changes
+  useEffect(() => {
+    setIsAtBottom(isBottomVisible);
+    if (isBottomVisible) {
       setShowNewMessageButton(false);
     }
-  };
+  }, [isBottomVisible]);
 
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
@@ -76,20 +76,28 @@ export function ChatInterface({
 
   useEffect(() => {
     const callback = () => {
-      if (!isAtBottom) {
+      if (!isBottomVisible) {
         setShowNewMessageButton(true);
       }
     };
 
     onNewMessage(callback);
     return () => onNewMessage(null);
-  }, [onNewMessage, isAtBottom]);
+  }, [onNewMessage, isBottomVisible]);
 
   useEffect(() => {
     if (inView && hasMore && !isLoading) {
       loadMore();
     }
   }, [inView, hasMore, isLoading, loadMore]);
+
+  // Auto-scroll to bottom when new messages arrive if user was already at bottom
+  useEffect(() => {
+    if (isAtBottom && chatContainerRef.current && messages.length > 0) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [messages.length, isAtBottom, chatContainerRef]);
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
@@ -113,14 +121,13 @@ export function ChatInterface({
       />
       <div
         ref={chatContainerRef}
-        onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-4 bg-gray-50 relative">
         <div ref={ref} className="h-1" />
         {isLoading && <Spinner />}
         <ChatMessages messages={messages} room={room} />
         {isError && <p>خطا در بارگذاری پیام‌ها</p>}
-        <div ref={messagesEndRef} />
-
+        <div ref={bottomRef} className="h-1 w-full" />{" "}
+        {/* Bottom observer element */}
         {showNewMessageButton && (
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
             <Button
