@@ -136,14 +136,12 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
       if (!latestMessageTimestamp.current) return;
 
       try {
-        const response = await axiosInstance.get<MessagesResponse>(
+        const response = await axiosInstance.get<Message[]>(
           `/v1/support_chat/messages/with-time-stamp/?support_chat_set_id=${supportChatSetId}&last_message_timestamp=${latestMessageTimestamp.current}`
         );
 
-        const { results } = response.data;
-        if (results && Array.isArray(results)) {
-          setMessages(prev => [...prev, ...results]);
-        }
+        const { data } = response;
+        setMessages(prev => [...prev, ...data]);
       } catch (err) {
         console.error("Failed to fetch new messages:", err);
       }
