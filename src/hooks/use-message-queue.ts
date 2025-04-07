@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef } from "react";
+
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 
@@ -126,14 +127,21 @@ export function useMessageQueue() {
               `Sending queued message via ${eventName}:`,
               message.text
             );
-            socket.emit(eventName, {
-              message: message.text,
-              support_chat_set_id: roomId,
-            });
-
-            // Mark as sent immediately for now
-            clearTimeout(timeout);
-            resolve();
+            socket.emit(
+              eventName,
+              {
+                message: message.text,
+                support_chat_set_id: roomId,
+              },
+              (response: { success: boolean }) => {
+                clearTimeout(timeout);
+                if (response?.success) {
+                  resolve();
+                } else {
+                  reject(new Error("Message sending failed"));
+                }
+              }
+            );
           });
 
           // Mark as sent
