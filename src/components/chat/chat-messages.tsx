@@ -1,22 +1,49 @@
+"use client";
+
+import { useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/store/user-store";
 import type { Room, Message } from "@/store/socket-store";
 
 interface ChatMessagesProps {
   messages: Message[];
   room: Room;
+  loadMore: () => void;
+  hasMore: boolean;
+  isLoading: boolean;
 }
 
-export function ChatMessages({ messages, room }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  room,
+  loadMore,
+  hasMore,
+  isLoading,
+}: ChatMessagesProps) {
   const { user } = useUserStore();
 
+  // Observe the top of the chat for loading more messages
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    triggerOnce: false,
+  });
+
+  // Trigger loading more messages when the top is in view
+  useEffect(() => {
+    if (inView && hasMore && !isLoading) {
+      loadMore();
+    }
+  }, [inView, hasMore, isLoading, loadMore]);
+
   return (
-    <div className="space-y-4">
+    <ul className="space-y-4">
+      {hasMore && !isLoading ? <div ref={ref} className="h-1" /> : null}
       {messages.map(msg => {
         const isCurrentUser = msg.created_by === room.client;
         const isSentByCurrentUser = msg.created_by === user?.id;
 
         return (
-          <div
+          <li
             key={msg.id}
             data-id={msg.id}
             className={`flex ${
@@ -36,9 +63,9 @@ export function ChatMessages({ messages, room }: ChatMessagesProps) {
                 <p className="text-xs text-green-500 mt-1">خوانده شده</p>
               )}
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

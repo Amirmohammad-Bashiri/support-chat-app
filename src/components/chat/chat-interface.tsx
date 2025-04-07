@@ -37,13 +37,6 @@ export function ChatInterface({
     onNewMessage,
   } = useMessages(Number(room.id), 1);
 
-  // For loading more messages at the top when scrolling up
-  const { ref, inView } = useInView({
-    threshold: 0.1,
-    triggerOnce: false,
-    rootMargin: "200px 0px 0px 0px",
-  });
-
   // For detecting when user is at the bottom of the chat
   const { ref: bottomRef, inView: isBottomVisible } = useInView({
     threshold: 0.5,
@@ -54,7 +47,7 @@ export function ChatInterface({
   useEffect(() => {
     setIsAtBottom(isBottomVisible);
     if (isBottomVisible) {
-      setShowNewMessageButton(false);
+      setShowNewMessageButton(false); // Hide the button when at the bottom
     }
   }, [isBottomVisible]);
 
@@ -63,7 +56,7 @@ export function ChatInterface({
       chatContainerRef.current.scrollTop =
         chatContainerRef.current.scrollHeight;
       setIsAtBottom(true);
-      setShowNewMessageButton(false);
+      setShowNewMessageButton(false); // Hide the button after scrolling
     }
   };
 
@@ -77,19 +70,13 @@ export function ChatInterface({
   useEffect(() => {
     const callback = () => {
       if (!isBottomVisible) {
-        setShowNewMessageButton(true);
+        setShowNewMessageButton(true); // Show the button when new messages arrive
       }
     };
 
     onNewMessage(callback);
     return () => onNewMessage(null);
   }, [onNewMessage, isBottomVisible]);
-
-  useEffect(() => {
-    if (inView && hasMore && !isLoading) {
-      loadMore();
-    }
-  }, [inView, hasMore, isLoading, loadMore]);
 
   // Auto-scroll to bottom when new messages arrive if user was already at bottom
   useEffect(() => {
@@ -122,14 +109,19 @@ export function ChatInterface({
       <div
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-4 bg-gray-50 relative">
-        <div ref={ref} className="h-1" />
         {isLoading && <Spinner />}
-        <ChatMessages messages={messages} room={room} />
+        <ChatMessages
+          messages={messages}
+          room={room}
+          loadMore={loadMore}
+          hasMore={hasMore}
+          isLoading={isLoading}
+        />
         {isError && <p>خطا در بارگذاری پیام‌ها</p>}
         <div ref={bottomRef} className="h-1 w-full" />{" "}
         {/* Bottom observer element */}
         {showNewMessageButton && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-10">
             <Button
               onClick={scrollToBottom}
               className="rounded-full bg-black text-white shadow-lg px-4 py-2 flex items-center">

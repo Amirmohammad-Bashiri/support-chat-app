@@ -36,6 +36,10 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
       setIsLoading(true);
       setError(null);
 
+      const container = chatContainerRef.current;
+      const previousScrollHeight = container?.scrollHeight || 0;
+      const previousScrollTop = container?.scrollTop || 0;
+
       try {
         const response = await axiosInstance.get<MessagesResponse>(
           `/v1/support_chat/messages?support_chat_set_id=${supportChatSetId}&page=${pageToFetch}`
@@ -55,6 +59,13 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
         }
 
         setHasMore(next !== null); // Ensure we stop when there's no next page
+
+        // Restore scroll position after loading messages
+        if (container) {
+          const newScrollHeight = container.scrollHeight;
+          container.scrollTop =
+            newScrollHeight - previousScrollHeight + previousScrollTop;
+        }
       } catch (err) {
         console.error("Failed to fetch messages:", err);
         setError(err as Error);
@@ -127,7 +138,7 @@ export function useMessages(supportChatSetId: number, initialPage: number = 1) {
   }, [messages]);
 
   // Handle reconnections
-  // Reload the page to fetch all messages when the socket reconnects
+  // fetch the new messages when the socket reconnects
   useEffect(() => {
     if (!socket || !user) return;
 
