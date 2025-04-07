@@ -6,6 +6,7 @@ import { useUserStore } from "@/store/user-store";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCheck } from "lucide-react";
 import type { Room, Message } from "@/store/socket-store";
+import { detectTextDirection } from "@/lib/text-direction";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -51,6 +52,9 @@ export function ChatMessages({
             new Date(msg.created_at).toDateString() !==
               new Date(messages[index - 1].created_at).toDateString();
 
+          // Detect text direction for this message
+          const textDirection = detectTextDirection(msg.text);
+
           return (
             <motion.div
               key={msg.id}
@@ -90,7 +94,12 @@ export function ChatMessages({
                       ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-none"
                       : "bg-gray-100 text-gray-800 border border-gray-200 rounded-bl-none"
                   }`}>
-                  <p className="text-sm leading-relaxed break-words">
+                  <p
+                    className="text-sm leading-relaxed break-words"
+                    style={{
+                      direction: textDirection,
+                      textAlign: textDirection === "rtl" ? "right" : "left",
+                    }}>
                     {msg.text}
                   </p>
                   <div

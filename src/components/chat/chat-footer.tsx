@@ -1,11 +1,10 @@
 "use client";
 
-import type React from "react";
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Paperclip, Smile } from "lucide-react";
+import { detectTextDirection } from "@/lib/text-direction";
 
 interface ChatFooterProps {
   message: string;
@@ -19,6 +18,7 @@ export function ChatFooter({
   onSendMessage,
 }: ChatFooterProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const [textDirection, setTextDirection] = useState<"rtl" | "ltr">("rtl"); // Default to RTL for Persian
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,6 +32,11 @@ export function ChatFooter({
       onSendMessage();
     }
   };
+
+  // Update text direction when message changes
+  useEffect(() => {
+    setTextDirection(detectTextDirection(message));
+  }, [message]);
 
   useEffect(() => {
     // Auto focus input on component mount
@@ -63,7 +68,11 @@ export function ChatFooter({
             onBlur={() => setIsFocused(false)}
             onKeyDown={handleKeyDown}
             placeholder="پیام خود را بنویسید..."
-            className="flex-1 text-right pr-4 pl-10 py-6 rounded-full border-gray-200 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition-all"
+            className="flex-1 pr-4 pl-10 py-6 rounded-full border-gray-200 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition-all"
+            style={{
+              direction: textDirection,
+              textAlign: textDirection === "rtl" ? "right" : "left",
+            }}
           />
           <Button
             type="button"
