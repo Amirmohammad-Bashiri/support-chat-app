@@ -32,6 +32,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
   const [error, setError] = useState<Error | null>(null);
   const messageCallbackRef = useRef<(() => void) | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const initialLoadCompleteRef = useRef(false);
 
   const { socket, isConnected } = useSocketStore();
   const { user } = useUserStore();
@@ -132,7 +133,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
   // Fetch messages manually
   const fetchMessages = useCallback(
     async (pageToFetch: number) => {
-      if (!hasMore) return; // Prevent unnecessary fetch
+      if (!hasMore && pageToFetch !== initialPage) return; // Prevent unnecessary fetch, but always allow initial page fetch
 
       setIsLoading(true);
       setError(null);
@@ -142,6 +143,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
       const previousScrollTop = container?.scrollTop || 0;
 
       try {
+        console.log(`Fetching messages for page ${pageToFetch}`);
         const response = await axiosInstance.get<MessagesResponse>(
           `/v1/support_chat/messages?support_chat_set_id=${supportChatSetId}&page=${pageToFetch}`
         );
@@ -153,35 +155,38 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
           return;
         }
 
-        // Filter out messages we already have
-        const newMessages = results.filter(msg => !messageExists(msg.id));
+        console.log(`Received ${results.length} messages from server`);
 
-        // Mark all fetched messages as sent and add to our ID tracking
-        newMessages.forEach(msg => {
+        // Process all messages, don't filter out existing ones on initial load
+        // This ensures we don't lose messages that were sent while offline
+        const processedResults = results.map(msg => {
+          // Add the message ID to our tracking set
           if (typeof msg.id === "number" && msg.id > 0) {
-            sentMessagesIdsRef.current.add(msg.id);
             messageIdsRef.current.add(msg.id);
+            sentMessagesIdsRef.current.add(msg.id);
           }
+
+          return {
+            ...msg,
+            isPending: false,
+            isSent: true,
+          } as ExtendedMessage;
         });
 
-        // Add isSent property to fetched messages
-        const processedResults = newMessages.map(msg => ({
-          ...msg,
-          isPending: false,
-          isSent: true,
-        })) as ExtendedMessage[];
-
         if (pageToFetch === initialPage) {
-          // Preserve pending messages when refreshing
+          // On initial page load, replace all non-pending messages
+          // but keep pending messages that haven't been sent yet
           const pendingMsgs = Array.from(pendingMessagesRef.current.values());
+          console.log(
+            `Setting ${processedResults.length} server messages and ${pendingMsgs.length} pending messages`
+          );
+
           setMessages([...processedResults, ...pendingMsgs]);
+          initialLoadCompleteRef.current = true;
         } else {
+          // For pagination, prepend new messages to existing ones
           setMessages(prev => {
-            // Filter out pending messages
-            const regularMsgs = prev.filter(msg => !msg.isPending);
-            // Add new messages and preserve pending ones
-            const pendingMsgs = Array.from(pendingMessagesRef.current.values());
-            return [...processedResults, ...regularMsgs, ...pendingMsgs];
+            return [...processedResults, ...prev];
           });
         }
 
@@ -200,7 +205,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         setIsLoading(false);
       }
     },
-    [supportChatSetId, initialPage, hasMore, messageExists]
+    [supportChatSetId, initialPage, hasMore]
   );
 
   // Fetch messages when the page changes
@@ -219,7 +224,12 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
       if (newMessage.support_chat_set !== supportChatSetId) return;
 
       // Skip if we already have this message
-      if (messageExists(newMessage.id)) return;
+      if (messageExists(newMessage.id)) {
+        console.log("Skipping duplicate message:", newMessage.id);
+        return;
+      }
+
+      console.log("Received new message:", newMessage);
 
       // Mark the message as sent
       if (typeof newMessage.id === "number" && newMessage.id > 0) {
@@ -239,12 +249,49 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
     [supportChatSetId, messageExists]
   );
 
+  // Add a function to check if a pending message matches a server message
+  const matchPendingMessageToServer = useCallback((serverMessage: Message) => {
+    // This would be more robust with a proper message ID system from the server
+    // For now, we'll use text content and timestamps as a heuristic
+    const pendingMessages = Array.from(pendingMessagesRef.current.values());
+
+    for (const pendingMsg of pendingMessages) {
+      // If the text matches and the timestamp is close (within 10 seconds)
+      if (pendingMsg.text === serverMessage.text) {
+        const pendingTime = new Date(pendingMsg.created_at).getTime();
+        const serverTime = new Date(serverMessage.created_at).getTime();
+
+        // If timestamps are within 10 seconds of each other
+        if (Math.abs(pendingTime - serverTime) < 10000) {
+          return pendingMsg.clientId;
+        }
+      }
+    }
+
+    return null;
+  }, []);
+
   // Handle real-time messages
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("user_message", handleNewMessage);
-    socket.on("agent_message", handleNewMessage);
+    const handleServerMessage = (data: Message) => {
+      // Handle the new message
+      handleNewMessage(data);
+
+      // Check if this message matches any of our pending messages
+      const matchingClientId = matchPendingMessageToServer(data);
+      if (matchingClientId) {
+        console.log(
+          "Found matching pending message, removing:",
+          matchingClientId
+        );
+        removePendingMessage(matchingClientId);
+      }
+    };
+
+    socket.on("user_message", handleServerMessage);
+    socket.on("agent_message", handleServerMessage);
 
     socket.on("message_read", (data: { list_message_instance: Message[] }) => {
       setMessages(prev =>
@@ -261,11 +308,16 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
     });
 
     return () => {
-      socket.off("user_message");
-      socket.off("agent_message");
+      socket.off("user_message", handleServerMessage);
+      socket.off("agent_message", handleServerMessage);
       socket.off("message_read");
     };
-  }, [socket, handleNewMessage]);
+  }, [
+    socket,
+    handleNewMessage,
+    matchPendingMessageToServer,
+    removePendingMessage,
+  ]);
 
   // Update latest message timestamp
   useEffect(() => {

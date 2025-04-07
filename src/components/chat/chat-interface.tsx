@@ -21,9 +21,9 @@ import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatFooter } from "@/components/chat/chat-footer";
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
+import { OfflineTooltip } from "@/components/chat/offline-tooltip";
 
 import type { Message, Room } from "@/store/socket-store";
-import { OfflineTooltip } from "./offline-tooltip";
 
 export function ChatInterface({
   room,
@@ -43,7 +43,7 @@ export function ChatInterface({
   const { sendMessage, endConversation } = useSupport();
   const { isConnected } = useSocketStore();
   const { user } = useUserStore();
-  const { queueMessage, getQueueCount } = useMessageQueue();
+  const { queueMessage, getQueueCount, processQueue } = useMessageQueue();
 
   // Check if user is an agent based on role name
   const userIsAgent = user?.role_name === "Admin";
@@ -158,12 +158,17 @@ export function ChatInterface({
 
     if (!isConnected && !userIsAgent) {
       // If offline and not an agent, queue the message
-      queueMessage(message, room.id);
+      addPendingMessage(message);
 
-      // Add optimistic message to UI
-      if (addPendingMessage) {
-        addPendingMessage(message);
-      }
+      // Then queue it for actual sending later
+      queueMessage(message, room.id)
+        .then(() => {
+          console.log("Message queued successfully:", message);
+          updateQueueCount(); // Update the queue count after queueing
+        })
+        .catch(err => {
+          console.error("Failed to queue message:", err);
+        });
 
       setMessage("");
     } else {
@@ -204,6 +209,16 @@ export function ChatInterface({
 
     return () => clearInterval(interval);
   }, [updateQueueCount, isConnected]);
+
+  useEffect(() => {
+    // When connection is restored, process the queue
+    if (isConnected && !userIsAgent) {
+      console.log(
+        "Connection restored in chat interface, triggering queue processing..."
+      );
+      processQueue();
+    }
+  }, [isConnected, userIsAgent, processQueue]);
 
   return (
     <motion.div
