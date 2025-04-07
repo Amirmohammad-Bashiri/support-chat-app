@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
-import { useMessageQueue } from "@/hooks/use-message-queue";
+import {} from "@/hooks/use-message-queue";
 import axiosInstance from "@/api/axios-instance";
 
 import type { Message } from "@/store/socket-store";
@@ -16,9 +16,10 @@ interface MessagesResponse {
   results: Message[];
 }
 
-// Extended message interface to include pending status
+// Extended message interface to include status
 interface ExtendedMessage extends Message {
   isPending?: boolean;
+  isSent?: boolean;
   clientId?: string;
 }
 
@@ -34,10 +35,9 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
 
   const { socket, isConnected } = useSocketStore();
   const { user } = useUserStore();
-  const { getQueueCount } = useMessageQueue();
-
   const latestMessageTimestamp = useRef<string | null>(null);
   const pendingMessagesRef = useRef<Map<string, ExtendedMessage>>(new Map());
+  const sentMessagesIdsRef = useRef<Set<number>>(new Set());
 
   // Add a pending message to the UI
   const addPendingMessage = useCallback(
@@ -58,6 +58,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         is_deleted: false,
         is_read: false,
         isPending: true,
+        isSent: false,
         clientId,
       };
 
@@ -98,6 +99,17 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
     setMessages(prev => prev.filter(msg => msg.clientId !== clientId));
   }, []);
 
+  // Mark a message as sent
+  const markMessageAsSent = useCallback((messageId: number) => {
+    sentMessagesIdsRef.current.add(messageId);
+
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId ? { ...msg, isPending: false, isSent: true } : msg
+      )
+    );
+  }, []);
+
   // Fetch messages manually
   const fetchMessages = useCallback(
     async (pageToFetch: number) => {
@@ -122,17 +134,31 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
           return;
         }
 
+        // Mark all fetched messages as sent
+        results.forEach(msg => {
+          if (typeof msg.id === "number" && msg.id > 0) {
+            sentMessagesIdsRef.current.add(msg.id);
+          }
+        });
+
+        // Add isSent property to fetched messages
+        const processedResults = results.map(msg => ({
+          ...msg,
+          isPending: false,
+          isSent: true,
+        })) as ExtendedMessage[];
+
         if (pageToFetch === initialPage) {
           // Preserve pending messages when refreshing
           const pendingMsgs = Array.from(pendingMessagesRef.current.values());
-          setMessages([...results, ...pendingMsgs]);
+          setMessages([...processedResults, ...pendingMsgs]);
         } else {
           setMessages(prev => {
             // Filter out pending messages
             const regularMsgs = prev.filter(msg => !msg.isPending);
             // Add new messages and preserve pending ones
             const pendingMsgs = Array.from(pendingMessagesRef.current.values());
-            return [...results, ...regularMsgs, ...pendingMsgs];
+            return [...processedResults, ...regularMsgs, ...pendingMsgs];
           });
         }
 
@@ -164,12 +190,15 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
     messageCallbackRef.current = callback;
   }, []);
 
-  // Handle real-time messages
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewMessage = (newMessage: Message) => {
+  // Handle new message function
+  const handleNewMessage = useCallback(
+    (newMessage: Message) => {
       if (newMessage.support_chat_set !== supportChatSetId) return;
+
+      // Mark the message as sent
+      if (typeof newMessage.id === "number" && newMessage.id > 0) {
+        sentMessagesIdsRef.current.add(newMessage.id);
+      }
 
       setMessages(prev => {
         // Skip if we already have this message
@@ -178,21 +207,31 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         // Notify about new message (for the "new messages" button)
         if (messageCallbackRef.current) messageCallbackRef.current();
 
-        // Add new message at the end
-        return [...prev, newMessage];
+        // Add new message at the end with sent status
+        return [...prev, { ...newMessage, isPending: false, isSent: true }];
       });
-    };
+    },
+    [supportChatSetId]
+  );
+
+  // Handle real-time messages
+  useEffect(() => {
+    if (!socket) return;
 
     socket.on("user_message", handleNewMessage);
     socket.on("agent_message", handleNewMessage);
 
     socket.on("message_read", (data: { list_message_instance: Message[] }) => {
       setMessages(prev =>
-        prev.map(
-          msg =>
-            data.list_message_instance.find(updated => updated.id === msg.id) ||
-            msg
-        )
+        prev.map(msg => {
+          const updatedMsg = data.list_message_instance.find(
+            updated => updated.id === msg.id
+          );
+          if (updatedMsg) {
+            return { ...msg, ...updatedMsg, isPending: false, isSent: true };
+          }
+          return msg;
+        })
       );
     });
 
@@ -201,7 +240,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
       socket.off("agent_message");
       socket.off("message_read");
     };
-  }, [socket, supportChatSetId]);
+  }, [socket, handleNewMessage]);
 
   // Update latest message timestamp
   useEffect(() => {
@@ -233,12 +272,26 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
 
         const { data } = response;
 
+        // Mark all fetched messages as sent
+        data.forEach(msg => {
+          if (typeof msg.id === "number" && msg.id > 0) {
+            sentMessagesIdsRef.current.add(msg.id);
+          }
+        });
+
+        // Add isSent property to fetched messages
+        const processedData = data.map(msg => ({
+          ...msg,
+          isPending: false,
+          isSent: true,
+        })) as ExtendedMessage[];
+
         // Update messages, preserving pending ones
         setMessages(prev => {
           const pendingMsgs = prev.filter(msg => msg.isPending);
           return [
             ...prev.filter(msg => !msg.isPending),
-            ...data,
+            ...processedData,
             ...pendingMsgs,
           ];
         });
@@ -254,29 +307,32 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
     };
   }, [socket, user, supportChatSetId]);
 
-  // Update pending message indicators when connection status changes
+  // Update message status indicators when connection status changes
   useEffect(() => {
-    // When connection status changes, update all pending messages
-    const updatePendingIndicators = async () => {
-      // Get queue count to see if we have pending messages
-      const count = await getQueueCount(supportChatSetId);
+    // When connection status changes, update message status indicators
+    setMessages(prev =>
+      prev.map(msg => {
+        // If the message has a real ID or is in our sent messages set, it's been sent
+        const hasBeenSent =
+          (typeof msg.id === "number" && msg.id > 0) ||
+          sentMessagesIdsRef.current.has(Number(msg.id));
 
-      setMessages(prev =>
-        prev.map(msg => {
-          if (msg.isPending) {
-            return {
-              ...msg,
-              // If we're connected and there are no queued messages, this is probably sent
-              isPending: !isConnected || count > 0,
-            };
-          }
+        if (hasBeenSent) {
+          // Message has been sent to the server, so it's not pending
+          return {
+            ...msg,
+            isPending: false,
+            isSent: true,
+          };
+        } else if (msg.isPending) {
+          // Message is still pending
           return msg;
-        })
-      );
-    };
+        }
 
-    updatePendingIndicators();
-  }, [isConnected, supportChatSetId, getQueueCount]);
+        return msg;
+      })
+    );
+  }, [isConnected]);
 
   // Mark messages as read when visible
   useEffect(() => {
@@ -303,7 +359,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
 
           setMessages(prev =>
             prev.map(msg =>
-              unreadMessageIds.includes(msg.id)
+              unreadMessageIds.includes(Number(msg.id))
                 ? { ...msg, is_read: true }
                 : msg
             )
@@ -361,5 +417,6 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
     addPendingMessage,
     updatePendingMessage,
     removePendingMessage,
+    markMessageAsSent,
   };
 }

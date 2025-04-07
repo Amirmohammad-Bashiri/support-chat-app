@@ -16,7 +16,7 @@ import { ChatFooter } from "@/components/chat/chat-footer";
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 
-import type { Room } from "@/store/socket-store";
+import type { Message, Room } from "@/store/socket-store";
 
 export function ChatInterface({
   room,
@@ -49,6 +49,7 @@ export function ChatInterface({
     chatContainerRef,
     onNewMessage,
     addPendingMessage,
+    markMessageAsSent,
   } = useMessages(Number(room.id), 1);
 
   // For detecting when user is at the bottom of the chat
@@ -121,6 +122,28 @@ export function ChatInterface({
       });
     }
   }, [messages.length, isAtBottom, chatContainerRef]);
+
+  // Listen for socket events to mark messages as sent
+  useEffect(() => {
+    if (!isConnected || !markMessageAsSent) return;
+
+    const handleMessageSent = (message: Message) => {
+      if (message && message.id) {
+        markMessageAsSent(message.id);
+      }
+    };
+
+    const socket = useSocketStore.getState().socket;
+    if (socket) {
+      socket.on("user_message", handleMessageSent);
+      socket.on("agent_message", handleMessageSent);
+
+      return () => {
+        socket.off("user_message", handleMessageSent);
+        socket.off("agent_message", handleMessageSent);
+      };
+    }
+  }, [isConnected, markMessageAsSent]);
 
   const handleSendMessage = () => {
     if (!message.trim()) return;

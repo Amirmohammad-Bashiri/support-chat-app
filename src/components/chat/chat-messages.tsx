@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/store/user-store";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCheck, Clock } from "lucide-react";
+import { CheckCheck, Clock, Check } from "lucide-react";
 import type { Room, Message } from "@/store/socket-store";
 import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
@@ -17,9 +17,10 @@ interface ChatMessagesProps {
   isLoading: boolean;
 }
 
-// Extended message interface to include pending status
+// Extended message interface to include status
 interface ExtendedMessage extends Message {
   isPending?: boolean;
+  isSent?: boolean;
 }
 
 export function ChatMessages({
@@ -106,8 +107,19 @@ export function ChatMessages({
           // Detect text direction for this message
           const textDirection = detectTextDirection(msg.text);
 
-          // Check if this is a pending message (for UI purposes)
-          const isPending = (msg as ExtendedMessage).isPending;
+          // Check message status
+          const extMsg = msg as ExtendedMessage;
+          const isPending = extMsg.isPending;
+          const isSent = extMsg.isSent;
+
+          // A message with a real ID (positive number) has been sent to the server
+          const hasRealId = typeof msg.id === "number" && msg.id > 0;
+
+          // Determine message status for UI
+          const showPendingIndicator = isPending && !hasRealId;
+          const showSentIndicator =
+            (isSent || hasRealId) && !msg.is_read && isConnected;
+          const showReadIndicator = msg.is_read && isConnected;
 
           return (
             <motion.div
@@ -183,7 +195,7 @@ export function ChatMessages({
                     {/* Show different status indicators based on message state */}
                     {isSentByCurrentUser && (
                       <>
-                        {isPending && (
+                        {showPendingIndicator && (
                           <motion.div
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -191,15 +203,15 @@ export function ChatMessages({
                             <Clock className="h-3 w-3 text-amber-300" />
                           </motion.div>
                         )}
-                        {!isPending && !isConnected && (
+                        {showSentIndicator && (
                           <motion.div
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             className="flex items-center">
-                            <Clock className="h-3 w-3 text-amber-300" />
+                            <Check className="h-3 w-3 text-green-300" />
                           </motion.div>
                         )}
-                        {!isPending && isConnected && msg.is_read && (
+                        {showReadIndicator && (
                           <motion.div
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
