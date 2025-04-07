@@ -7,11 +7,14 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { useSupport } from "@/hooks/socket/use-socket";
 import { useMessages } from "@/hooks/use-messages";
+import { useMessageQueue } from "@/hooks/use-message-queue";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { ChatHeader } from "@/components/chat/chat-header";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatFooter } from "@/components/chat/chat-footer";
+import { useSocketStore } from "@/store/socket-store";
+import { useUserStore } from "@/store/user-store";
 
 import type { Room } from "@/store/socket-store";
 
@@ -30,6 +33,13 @@ export function ChatInterface({
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { sendMessage, endConversation } = useSupport();
+  const { isConnected } = useSocketStore();
+  const { user } = useUserStore();
+  const { queueMessage } = useMessageQueue();
+
+  // Check if user is an agent based on role name
+  const userIsAgent = user?.role_name === "Admin";
+
   const {
     messages,
     isLoading,
@@ -38,6 +48,7 @@ export function ChatInterface({
     hasMore,
     chatContainerRef,
     onNewMessage,
+    addPendingMessage,
   } = useMessages(Number(room.id), 1);
 
   // For detecting when user is at the bottom of the chat
@@ -113,8 +124,23 @@ export function ChatInterface({
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
-    sendMessage(message);
-    setMessage("");
+
+    if (!isConnected && !userIsAgent) {
+      // If offline and not an agent, queue the message
+      queueMessage(message, room.id);
+
+      // Add optimistic message to UI
+      if (addPendingMessage) {
+        addPendingMessage(message);
+      }
+
+      setMessage("");
+    } else {
+      // If online or an agent, send normally
+      sendMessage(message);
+      setMessage("");
+    }
+
     scrollToBottom();
   };
 

@@ -4,9 +4,10 @@ import { useEffect, useRef } from "react";
 import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/store/user-store";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCheck } from "lucide-react";
+import { CheckCheck, Clock } from "lucide-react";
 import type { Room, Message } from "@/store/socket-store";
 import { detectTextDirection } from "@/lib/text-direction";
+import { useSocketStore } from "@/store/socket-store";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -14,6 +15,11 @@ interface ChatMessagesProps {
   loadMore: () => void;
   hasMore: boolean;
   isLoading: boolean;
+}
+
+// Extended message interface to include pending status
+interface ExtendedMessage extends Message {
+  isPending?: boolean;
 }
 
 export function ChatMessages({
@@ -24,6 +30,7 @@ export function ChatMessages({
   isLoading,
 }: ChatMessagesProps) {
   const { user } = useUserStore();
+  const { isConnected } = useSocketStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Observe the top of the chat for loading more messages
@@ -99,6 +106,9 @@ export function ChatMessages({
           // Detect text direction for this message
           const textDirection = detectTextDirection(msg.text);
 
+          // Check if this is a pending message (for UI purposes)
+          const isPending = (msg as ExtendedMessage).isPending;
+
           return (
             <motion.div
               key={msg.id}
@@ -169,18 +179,40 @@ export function ChatMessages({
                         minute: "2-digit",
                       })}
                     </span>
-                    {msg.is_read && isSentByCurrentUser && (
-                      <motion.div
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 500,
-                          damping: 15,
-                          delay: 0.3,
-                        }}>
-                        <CheckCheck className="h-3 w-3 text-green-300" />
-                      </motion.div>
+
+                    {/* Show different status indicators based on message state */}
+                    {isSentByCurrentUser && (
+                      <>
+                        {isPending && (
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="flex items-center">
+                            <Clock className="h-3 w-3 text-amber-300" />
+                          </motion.div>
+                        )}
+                        {!isPending && !isConnected && (
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="flex items-center">
+                            <Clock className="h-3 w-3 text-amber-300" />
+                          </motion.div>
+                        )}
+                        {!isPending && isConnected && msg.is_read && (
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 500,
+                              damping: 15,
+                              delay: 0.3,
+                            }}>
+                            <CheckCheck className="h-3 w-3 text-green-300" />
+                          </motion.div>
+                        )}
+                      </>
                     )}
                   </div>
                 </motion.div>
