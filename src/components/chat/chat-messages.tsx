@@ -39,9 +39,53 @@ export function ChatMessages({
     }
   }, [inView, hasMore, isLoading, loadMore]);
 
+  // Animation variants for messages
+  const messageVariants = {
+    initial: (isSentByCurrentUser: boolean) => ({
+      opacity: 0,
+      x: isSentByCurrentUser ? 20 : -20,
+      y: 20,
+      scale: 0.95,
+    }),
+    animate: {
+      opacity: 1,
+      x: 0,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut",
+      },
+    },
+    exit: {
+      opacity: 0,
+      transition: {
+        duration: 0.2,
+      },
+    },
+  };
+
+  // Animation variants for time groups
+  const timeGroupVariants = {
+    initial: { opacity: 0, y: -10 },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3 },
+    },
+  };
+
   return (
     <div className="space-y-3 py-2">
-      {hasMore && !isLoading ? <div ref={ref} className="h-1" /> : null}
+      {hasMore && !isLoading ? (
+        <motion.div
+          ref={ref}
+          className="h-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        />
+      ) : null}
 
       <AnimatePresence initial={false}>
         {messages.map((msg, index) => {
@@ -58,23 +102,30 @@ export function ChatMessages({
           return (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              custom={isSentByCurrentUser}
+              variants={messageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
               className="space-y-1"
               style={{ direction: "ltr" }}>
               {showTimeGroup && (
-                <div className="flex justify-center my-4">
-                  <div className="bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded-full">
+                <motion.div
+                  className="flex justify-center my-4"
+                  variants={timeGroupVariants}
+                  initial="initial"
+                  animate="animate">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    className="bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded-full">
                     {new Date(msg.created_at).toLocaleDateString("fa-IR", {
                       weekday: "long",
                       year: "numeric",
                       month: "long",
                       day: "numeric",
                     })}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               )}
 
               <div
@@ -83,12 +134,18 @@ export function ChatMessages({
                   isSentByCurrentUser ? "justify-end" : "justify-start"
                 } items-end gap-2`}>
                 {!isSentByCurrentUser && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.2 }}
+                    whileHover={{ scale: 1.1 }}
+                    className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
                     {isCurrentUser ? "C" : "A"}
-                  </div>
+                  </motion.div>
                 )}
 
-                <div
+                <motion.div
+                  whileHover={{ scale: 1.01 }}
                   className={`min-w-[120px] max-w-[280px] md:max-w-[350px] rounded-2xl px-4 py-3 shadow-sm ${
                     isSentByCurrentUser
                       ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-none"
@@ -113,15 +170,30 @@ export function ChatMessages({
                       })}
                     </span>
                     {msg.is_read && isSentByCurrentUser && (
-                      <CheckCheck className="h-3 w-3 text-green-300" />
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 15,
+                          delay: 0.3,
+                        }}>
+                        <CheckCheck className="h-3 w-3 text-green-300" />
+                      </motion.div>
                     )}
                   </div>
-                </div>
+                </motion.div>
 
                 {isSentByCurrentUser && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.2 }}
+                    whileHover={{ scale: 1.1 }}
+                    className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
                     {user?.id.toString().charAt(0) || "U"}
-                  </div>
+                  </motion.div>
                 )}
               </div>
             </motion.div>

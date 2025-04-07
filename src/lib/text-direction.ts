@@ -1,18 +1,18 @@
 /**
  * Detects the text direction (RTL or LTR) based on the content
  * @param text The text to analyze
- * @returns "rtl" for right-to-left text (Persian, Arabic, etc.) or "ltr" for left-to-right text (English, etc.)
+ * @returns "rtl" for right-to-left text or "ltr" for left-to-right text
  */
 export function detectTextDirection(text: string): "rtl" | "ltr" {
   if (!text || text.trim() === "") {
     return "rtl"; // Default to RTL for empty text (Persian UI)
   }
 
-  // Regular expression to match RTL characters (Persian, Arabic, Hebrew, etc.)
+  // Regular expression to match RTL characters
   const rtlChars =
     /[\u0591-\u07FF\u200F\u202B\u202E\uFB1D-\uFDFD\uFE70-\uFEFC]/;
 
-  // Regular expression to match LTR characters (Latin, Cyrillic, Greek, etc.)
+  // Regular expression to match LTR characters
   const ltrChars =
     /[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02B8\u0300-\u0590\u0800-\u1FFF\u2C00-\uFB1C\uFDFE-\uFE6F\uFEFD-\uFFFF]/;
 
