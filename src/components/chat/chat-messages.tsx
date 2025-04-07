@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/store/user-store";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCheck, Clock, Check } from "lucide-react";
+import { CheckCheck, Clock, Check, WifiOff } from "lucide-react";
 import type { Room, Message } from "@/store/socket-store";
 import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
+import { useMessageQueue } from "@/hooks/use-message-queue";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -33,6 +34,11 @@ export function ChatMessages({
   const { user } = useUserStore();
   const { isConnected } = useSocketStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [queueCount, setQueueCount] = useState(0);
+  const { getQueueCount } = useMessageQueue();
+
+  // Check if user is an agent (Admin role)
+  const isAgent = user?.role_name === "Admin";
 
   // Observe the top of the chat for loading more messages
   const { ref, inView } = useInView({
@@ -46,6 +52,23 @@ export function ChatMessages({
       loadMore();
     }
   }, [inView, hasMore, isLoading, loadMore]);
+
+  // Update queue count when connection status changes
+  useEffect(() => {
+    const updateQueueCount = async () => {
+      if (room?.id) {
+        const count = await getQueueCount(room.id);
+        setQueueCount(count);
+      }
+    };
+
+    updateQueueCount();
+
+    // Update queue count periodically
+    const interval = setInterval(updateQueueCount, 5000);
+
+    return () => clearInterval(interval);
+  }, [room?.id, getQueueCount, isConnected]);
 
   // Animation variants for messages
   const messageVariants = {
@@ -85,6 +108,45 @@ export function ChatMessages({
 
   return (
     <div className="space-y-3 py-2">
+      {/* Offline notification banner */}
+      <AnimatePresence>
+        {!isConnected && !isAgent && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <div className="flex-shrink-0 bg-amber-100 p-2 rounded-full">
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      "0 0 0 0 rgba(217, 119, 6, 0.4)",
+                      "0 0 0 10px rgba(217, 119, 6, 0)",
+                      "0 0 0 0 rgba(217, 119, 6, 0)",
+                    ],
+                  }}
+                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                  className="relative">
+                  <WifiOff className="h-5 w-5 text-amber-600" />
+                </motion.div>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-amber-800">
+                  حالت آفلاین فعال است
+                </p>
+                <p className="text-amber-700 text-xs mt-1">
+                  پیام‌های شما در دستگاه شما ذخیره می‌شوند و به محض اتصال مجدد
+                  به اینترنت به صورت خودکار ارسال خواهند شد.
+                  {queueCount > 0 && ` (${queueCount} پیام در صف ارسال)`}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {hasMore && !isLoading ? (
         <motion.div
           ref={ref}
@@ -170,9 +232,17 @@ export function ChatMessages({
                   whileHover={{ scale: 1.01 }}
                   className={`min-w-[120px] max-w-[280px] md:max-w-[350px] rounded-2xl px-4 py-3 shadow-sm ${
                     isSentByCurrentUser
-                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-none"
+                      ? showPendingIndicator
+                        ? "bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-br-none"
+                        : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-none"
                       : "bg-gray-100 text-gray-800 border border-gray-200 rounded-bl-none"
                   }`}>
+                  {showPendingIndicator && (
+                    <div className="flex items-center justify-start gap-1 mb-1 text-xs text-amber-100">
+                      <Clock className="h-3 w-3" />
+                      <span>ارسال پس از اتصال مجدد</span>
+                    </div>
+                  )}
                   <p
                     className="text-sm leading-relaxed break-words"
                     style={{

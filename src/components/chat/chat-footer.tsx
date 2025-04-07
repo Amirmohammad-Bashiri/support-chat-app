@@ -5,32 +5,36 @@ import type React from "react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Paperclip, Smile, WifiOff } from "lucide-react";
+import { Send, Paperclip, Smile } from "lucide-react";
 import { detectTextDirection } from "@/lib/text-direction";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMessageQueue } from "@/hooks/use-message-queue";
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 
+// Update the ChatFooterProps interface to include the getSendButtonClass prop
 interface ChatFooterProps {
   message: string;
   onMessageChange: (value: string) => void;
   onSendMessage: () => void;
+  getSendButtonClass?: () => string;
 }
 
+// Then in the component, update the destructuring to include the new prop with a default value
 export function ChatFooter({
   message,
   onMessageChange,
   onSendMessage,
+  getSendButtonClass = () =>
+    "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700",
 }: ChatFooterProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [textDirection, setTextDirection] = useState<"rtl" | "ltr">("rtl"); // Default to RTL for Persian
-  const [queueCount, setQueueCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { isConnected, currentRoom } = useSocketStore();
   const { user } = useUserStore();
-  const { queueMessage, getQueueCount } = useMessageQueue();
+  const { queueMessage } = useMessageQueue();
 
   // Check if user is an agent (Admin role)
   const isAgent = user?.role_name === "Admin";
@@ -45,8 +49,6 @@ export function ChatFooter({
       await queueMessage(message, currentRoom);
       // Clear the input
       onMessageChange("");
-      // Update queue count
-      updateQueueCount();
     } else {
       // If online or an agent, send normally
       onSendMessage();
@@ -72,23 +74,6 @@ export function ChatFooter({
     }
   }, []);
 
-  // Update queue count when connection status changes
-  const updateQueueCount = async () => {
-    if (currentRoom) {
-      const count = await getQueueCount(currentRoom);
-      setQueueCount(count);
-    }
-  };
-
-  useEffect(() => {
-    updateQueueCount();
-
-    // Update queue count periodically
-    const interval = setInterval(updateQueueCount, 5000);
-
-    return () => clearInterval(interval);
-  }, [currentRoom, isConnected]);
-
   return (
     <motion.div
       initial={{ y: 10, opacity: 0 }}
@@ -97,20 +82,6 @@ export function ChatFooter({
       className={`border-t p-4 transition-all duration-300 ${
         isFocused ? "bg-gray-50" : "bg-white"
       }`}>
-      {!isConnected && !isAgent && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-2 flex items-center justify-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
-          <WifiOff className="h-4 w-4" />
-          <span>
-            شما آفلاین هستید. پیام‌های شما در صف قرار می‌گیرند و پس از اتصال
-            مجدد ارسال می‌شوند.
-            {queueCount > 0 && ` (${queueCount} پیام در صف)`}
-          </span>
-        </motion.div>
-      )}
-
       <form onSubmit={handleSubmit} className="flex w-full gap-2 items-center">
         <motion.div whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.1 }}>
           <Button
@@ -169,7 +140,7 @@ export function ChatFooter({
                 className={`rounded-full w-12 h-12 ${
                   !isConnected && !isAgent
                     ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
-                    : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                    : getSendButtonClass()
                 } transition-all duration-200`}>
                 <motion.div
                   animate={{ x: [0, 2, 0] }}

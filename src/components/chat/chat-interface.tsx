@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { useInView } from "react-intersection-observer";
 import { ArrowDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +23,7 @@ import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 
 import type { Message, Room } from "@/store/socket-store";
+import { OfflineTooltip } from "./offline-tooltip";
 
 export function ChatInterface({
   room,
@@ -31,11 +38,12 @@ export function ChatInterface({
   const [initialRender, setInitialRender] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [queueCount, setQueueCount] = useState(0);
 
   const { sendMessage, endConversation } = useSupport();
   const { isConnected } = useSocketStore();
   const { user } = useUserStore();
-  const { queueMessage } = useMessageQueue();
+  const { queueMessage, getQueueCount } = useMessageQueue();
 
   // Check if user is an agent based on role name
   const userIsAgent = user?.role_name === "Admin";
@@ -167,11 +175,35 @@ export function ChatInterface({
     scrollToBottom();
   };
 
+  // Get a different button color based on connection status
+  const getSendButtonClass = () => {
+    if (!isConnected && !userIsAgent) {
+      return "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700";
+    }
+    return "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700";
+  };
+
   const handleEndChat = () => {
     if (isAgent) {
       endConversation();
     }
   };
+
+  const updateQueueCount = useCallback(async () => {
+    if (room?.id) {
+      const count = await getQueueCount(room.id);
+      setQueueCount(count);
+    }
+  }, [room?.id, getQueueCount]);
+
+  useEffect(() => {
+    updateQueueCount();
+
+    // Update queue count periodically
+    const interval = setInterval(updateQueueCount, 5000);
+
+    return () => clearInterval(interval);
+  }, [updateQueueCount, isConnected]);
 
   return (
     <motion.div
@@ -185,6 +217,7 @@ export function ChatInterface({
         isAgent={isAgent}
         onEndChat={handleEndChat}
       />
+
       <div
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-gray-50 to-white relative">
@@ -320,7 +353,11 @@ export function ChatInterface({
         message={message}
         onMessageChange={setMessage}
         onSendMessage={handleSendMessage}
+        getSendButtonClass={getSendButtonClass}
       />
+      {!isConnected && !userIsAgent && queueCount > 0 && (
+        <OfflineTooltip queueCount={queueCount} />
+      )}
     </motion.div>
   );
 }
