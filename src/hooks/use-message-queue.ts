@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Message, useSocketStore } from "@/store/socket-store";
+import { type Message, useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 
 // Define the structure of a queued message

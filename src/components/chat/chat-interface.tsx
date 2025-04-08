@@ -45,6 +45,9 @@ export function ChatInterface({
     chatContainerRef,
     onNewMessage,
     markMessageAsSent,
+    addPendingMessage,
+    updatePendingMessage,
+    removePendingMessage,
   } = useMessages(Number(room.id), 1);
 
   // For detecting when user is at the bottom of the chat
@@ -145,13 +148,24 @@ export function ChatInterface({
     if (!message.trim()) return;
 
     if (!isConnected) {
+      // First add the pending message to the UI
+      const clientId = addPendingMessage(message);
+
       // Then queue it for actual sending later
       queueMessage(message, room.id)
         .then(() => {
           console.log("Message queued successfully:", message);
+          // Update the pending message with the queued ID if needed
+          if (clientId) {
+            updatePendingMessage(clientId, { isPending: true });
+          }
         })
         .catch(err => {
           console.error("Failed to queue message:", err);
+          // If queueing fails, we could remove the pending message
+          if (clientId) {
+            removePendingMessage(clientId);
+          }
         });
 
       setMessage("");

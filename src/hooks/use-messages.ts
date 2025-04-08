@@ -46,7 +46,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
   // Add a pending message to the UI
   const addPendingMessage = useCallback(
     (text: string) => {
-      if (!user) return;
+      if (!user) return null;
 
       const clientId = `pending_${Date.now()}_${Math.random()
         .toString(36)

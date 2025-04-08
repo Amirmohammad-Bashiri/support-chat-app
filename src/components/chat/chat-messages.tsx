@@ -185,7 +185,7 @@ export function ChatMessages({
 
           return (
             <motion.div
-              key={msg.id}
+              key={msg.id || msg.created_by}
               custom={isSentByCurrentUser}
               variants={messageVariants}
               initial="initial"
