@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useCallback,
-} from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useInView } from "react-intersection-observer";
 import { ArrowDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,7 +15,7 @@ import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatFooter } from "@/components/chat/chat-footer";
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
-import { OfflineTooltip } from "@/components/chat/offline-tooltip";
+import { ConnectionStatus } from "@/components/offline/connection-status";
 
 import type { Message, Room } from "@/store/socket-store";
 
@@ -38,12 +32,11 @@ export function ChatInterface({
   const [initialRender, setInitialRender] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [queueCount, setQueueCount] = useState(0);
 
   const { sendMessage, endConversation } = useSupport();
   const { isConnected } = useSocketStore();
   const { user } = useUserStore();
-  const { queueMessage, getQueueCount, processQueue } = useMessageQueue();
+  const { queueMessage, processQueue } = useMessageQueue();
 
   // Check if user is an agent based on role name
   const userIsAgent = user?.role_name === "Admin";
@@ -153,18 +146,18 @@ export function ChatInterface({
     }
   }, [isConnected, markMessageAsSent]);
 
+  // Update the handleSendMessage function to queue messages for both users and agents when offline
   const handleSendMessage = () => {
     if (!message.trim()) return;
 
-    if (!isConnected && !userIsAgent) {
-      // If offline and not an agent, queue the message
-      addPendingMessage(message);
+    if (!isConnected) {
+      // If offline, queue the message for both users and agents
+      const clientId = addPendingMessage(message);
 
       // Then queue it for actual sending later
       queueMessage(message, room.id)
         .then(() => {
           console.log("Message queued successfully:", message);
-          updateQueueCount(); // Update the queue count after queueing
         })
         .catch(err => {
           console.error("Failed to queue message:", err);
@@ -172,7 +165,7 @@ export function ChatInterface({
 
       setMessage("");
     } else {
-      // If online or an agent, send normally
+      // If online, send normally
       sendMessage(message);
       setMessage("");
     }
@@ -180,9 +173,9 @@ export function ChatInterface({
     scrollToBottom();
   };
 
-  // Get a different button color based on connection status
+  // Update the getSendButtonClass function to show amber color for both users and agents when offline
   const getSendButtonClass = () => {
-    if (!isConnected && !userIsAgent) {
+    if (!isConnected) {
       return "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700";
     }
     return "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700";
@@ -194,31 +187,16 @@ export function ChatInterface({
     }
   };
 
-  const updateQueueCount = useCallback(async () => {
-    if (room?.id) {
-      const count = await getQueueCount(room.id);
-      setQueueCount(count);
-    }
-  }, [room?.id, getQueueCount]);
-
-  useEffect(() => {
-    updateQueueCount();
-
-    // Update queue count periodically
-    const interval = setInterval(updateQueueCount, 5000);
-
-    return () => clearInterval(interval);
-  }, [updateQueueCount, isConnected]);
-
+  // Update the useEffect for processing queue to remove the userIsAgent check
   useEffect(() => {
     // When connection is restored, process the queue
-    if (isConnected && !userIsAgent) {
+    if (isConnected) {
       console.log(
         "Connection restored in chat interface, triggering queue processing..."
       );
       processQueue();
     }
-  }, [isConnected, userIsAgent, processQueue]);
+  }, [isConnected, processQueue]);
 
   return (
     <motion.div
@@ -370,9 +348,9 @@ export function ChatInterface({
         onSendMessage={handleSendMessage}
         getSendButtonClass={getSendButtonClass}
       />
-      {!isConnected && !userIsAgent && queueCount > 0 && (
-        <OfflineTooltip queueCount={queueCount} />
-      )}
+
+      {/* Show connection status indicator */}
+      <ConnectionStatus roomId={room.id} />
     </motion.div>
   );
 }

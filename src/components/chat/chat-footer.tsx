@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Send, Paperclip, Smile } from "lucide-react";
 import { detectTextDirection } from "@/lib/text-direction";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMessageQueue } from "@/hooks/use-message-queue";
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 
@@ -32,9 +31,8 @@ export function ChatFooter({
   const [textDirection, setTextDirection] = useState<"rtl" | "ltr">("rtl"); // Default to RTL for Persian
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { isConnected, currentRoom } = useSocketStore();
+  const { isConnected } = useSocketStore();
   const { user } = useUserStore();
-  const { queueMessage } = useMessageQueue();
 
   // Check if user is an agent (Admin role)
   const isAgent = user?.role_name === "Admin";
@@ -43,16 +41,7 @@ export function ChatFooter({
     e.preventDefault();
 
     if (!message.trim()) return;
-
-    if (!isConnected && currentRoom && !isAgent) {
-      // If offline and not an agent, queue the message
-      await queueMessage(message, currentRoom);
-      // Clear the input
-      onMessageChange("");
-    } else {
-      // If online or an agent, send normally
-      onSendMessage();
-    }
+    onSendMessage();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -138,10 +127,27 @@ export function ChatFooter({
                 type="submit"
                 size="icon"
                 className={`rounded-full w-12 h-12 ${
-                  !isConnected && !isAgent
+                  !isConnected
                     ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
                     : getSendButtonClass()
-                } transition-all duration-200`}>
+                } transition-all duration-200 relative`}>
+                {!isConnected && (
+                  <motion.div
+                    className="absolute inset-0 rounded-full"
+                    animate={{
+                      boxShadow: [
+                        "0 0 0 0 rgba(245, 158, 11, 0.4)",
+                        "0 0 0 8px rgba(245, 158, 11, 0)",
+                        "0 0 0 0 rgba(245, 158, 11, 0.4)",
+                      ],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Number.POSITIVE_INFINITY,
+                      repeatType: "loop",
+                    }}
+                  />
+                )}
                 <motion.div
                   animate={{ x: [0, 2, 0] }}
                   transition={{

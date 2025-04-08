@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
-
-import { useSocketStore } from "@/store/socket-store";
+import { useState, useEffect, useCallback } from "react";
+import { Message, useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 
-// Interface for queued messages
+// Define the structure of a queued message
 interface QueuedMessage {
   id: string;
   text: string;
@@ -14,285 +13,242 @@ interface QueuedMessage {
   attempts: number;
 }
 
-// Simple localStorage-based message queue
+// Define the structure for the queue storage
+interface MessageQueue {
+  [roomId: number]: QueuedMessage[];
+}
+
+/**
+ * Custom hook for handling offline message queue functionality
+ */
 export function useMessageQueue() {
+  const [queue, setQueue] = useState<MessageQueue>({});
   const { socket, isConnected } = useSocketStore();
   const { user } = useUserStore();
-  const processingRef = useRef(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Check if user is an agent (Admin role)
-  const isAgent = user?.role_name === "Admin";
-
-  // Helper to get the queue key for a specific room
-  const getQueueKey = useCallback((roomId: number) => {
-    return `chat_queue_${roomId}`;
+  // Load queue from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedQueue = localStorage.getItem("message_queue");
+      if (savedQueue) {
+        setQueue(JSON.parse(savedQueue));
+      }
+    } catch (error) {
+      console.error("Failed to load message queue from localStorage:", error);
+      // Reset queue if there's an error
+      localStorage.setItem("message_queue", JSON.stringify({}));
+    }
   }, []);
 
-  // Get all queued messages for a room
-  const getQueuedMessages = useCallback(
-    (roomId: number): QueuedMessage[] => {
-      try {
-        const queueKey = getQueueKey(roomId);
-        const queueData = localStorage.getItem(queueKey);
-        return queueData ? JSON.parse(queueData) : [];
-      } catch (error) {
-        console.error("Error getting queued messages:", error);
-        return [];
-      }
-    },
-    [getQueueKey]
-  );
-
-  // Save queued messages for a room
-  const saveQueuedMessages = useCallback(
-    (roomId: number, messages: QueuedMessage[]) => {
-      try {
-        const queueKey = getQueueKey(roomId);
-        localStorage.setItem(queueKey, JSON.stringify(messages));
-      } catch (error) {
-        console.error("Error saving queued messages:", error);
-      }
-    },
-    [getQueueKey]
-  );
+  // Save queue to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("message_queue", JSON.stringify(queue));
+  }, [queue]);
 
   // Add a message to the queue
   const queueMessage = useCallback(
-    async (text: string, roomId: number) => {
-      try {
-        // Get current queue
-        const messages = getQueuedMessages(roomId);
+    async (text: string, roomId: number): Promise<string> => {
+      const messageId = `queued_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 9)}`;
 
-        // Create new message
-        const newMessage: QueuedMessage = {
-          id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-          text,
-          roomId,
-          timestamp: Date.now(),
-          attempts: 0,
+      const newMessage: QueuedMessage = {
+        id: messageId,
+        text,
+        roomId,
+        timestamp: Date.now(),
+        attempts: 0,
+      };
+
+      setQueue(prevQueue => {
+        const roomQueue = prevQueue[roomId] || [];
+        return {
+          ...prevQueue,
+          [roomId]: [...roomQueue, newMessage],
         };
+      });
 
-        // Add to queue
-        messages.push(newMessage);
-
-        // Save updated queue
-        saveQueuedMessages(roomId, messages);
-
-        console.log("Message queued for offline sending:", text);
-        return true;
-      } catch (error) {
-        console.error("Failed to queue message:", error);
-        return false;
-      }
+      console.log(`Message queued: ${text} for room ${roomId}`);
+      return messageId;
     },
-    [getQueuedMessages, saveQueuedMessages]
+    []
   );
 
-  // Process the queue for a specific room
-  const processRoomQueue = useCallback(
-    async (roomId: number) => {
-      if (!socket || !isConnected || !user) return 0;
+  // Remove a message from the queue
+  const removeFromQueue = useCallback((roomId: number, messageId: string) => {
+    setQueue(prevQueue => {
+      const roomQueue = prevQueue[roomId] || [];
+      return {
+        ...prevQueue,
+        [roomId]: roomQueue.filter(msg => msg.id !== messageId),
+      };
+    });
+  }, []);
 
-      console.log(`Processing queue for room ${roomId}...`);
+  // Get the number of queued messages for a specific room
+  const getQueueCount = useCallback(
+    (roomId: number): number => {
+      return queue[roomId]?.length || 0;
+    },
+    [queue]
+  );
 
-      // Get queued messages
-      const messages = getQueuedMessages(roomId);
-      if (messages.length === 0) return 0;
+  // Get all queued messages
+  const getQueuedMessages = useCallback(
+    (roomId?: number): QueuedMessage[] => {
+      if (roomId !== undefined) {
+        return queue[roomId] || [];
+      }
 
-      console.log(`Found ${messages.length} messages to process`);
+      // Return all messages from all rooms if no roomId specified
+      return Object.values(queue).flat();
+    },
+    [queue]
+  );
 
-      // Track successfully sent messages
-      const sentMessageIds: string[] = [];
+  // Process the queue - send messages if online
+  const processQueue = useCallback(() => {
+    if (!isConnected || !socket || !user || isProcessing) {
+      console.log(
+        "Cannot process queue: offline, missing socket/user, or already processing"
+      );
+      return;
+    }
 
-      // Process each message
-      for (const message of messages) {
+    // Check if there are any messages to process
+    const totalMessages = Object.values(queue).flat().length;
+    if (totalMessages === 0) {
+      return;
+    }
+
+    console.log(`Processing message queue (${totalMessages} messages)...`);
+    setIsProcessing(true);
+
+    // Check if user is an agent (Admin role)
+    const isAgent = user.role_name === "Admin";
+
+    // Process each room's queue
+    Object.entries(queue).forEach(([roomIdStr, messages]) => {
+      const roomId = Number.parseInt(roomIdStr, 10);
+
+      if (messages.length === 0) return;
+
+      console.log(`Processing ${messages.length} messages for room ${roomId}`);
+
+      // Process messages in order (oldest first)
+      const sortedMessages = [...messages].sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
+
+      // Send each message with appropriate event based on user role
+      let processedCount = 0;
+
+      const processNext = () => {
+        if (processedCount >= sortedMessages.length) {
+          setIsProcessing(false);
+          return;
+        }
+
+        const message = sortedMessages[processedCount];
+
         try {
-          // Increment attempt counter
-          message.attempts += 1;
-
-          // Determine which event to use based on user role
+          // Use the appropriate event based on user role
           const eventName = isAgent
             ? "agent_send_message"
             : "user_send_message";
 
-          // Send the message
-          await new Promise<void>((resolve, reject) => {
-            // Set a timeout to prevent hanging
-            const timeout = setTimeout(() => {
-              reject(new Error("Message sending timed out"));
-            }, 5000);
-
-            // Emit the message to the server
-            console.log(
-              `Sending queued message via ${eventName}:`,
-              message.text
-            );
-            socket.emit(
-              eventName,
-              {
-                message: message.text,
-                support_chat_set_id: roomId,
-              },
-              (response: { success: boolean }) => {
-                clearTimeout(timeout);
-                if (response?.success) {
-                  resolve();
-                } else {
-                  reject(new Error("Message sending failed"));
-                }
-              }
-            );
+          socket.emit(eventName, {
+            message: message.text,
+            support_chat_set_id: roomId,
           });
 
-          // Mark as sent
-          sentMessageIds.push(message.id);
-          console.log("Successfully sent queued message:", message.text);
+          console.log(
+            `Sent queued message: ${message.text} (as ${
+              isAgent ? "agent" : "user"
+            })`
+          );
+
+          // Remove the message from the queue after sending
+          removeFromQueue(roomId, message.id);
+
+          // Process next message after a short delay
+          processedCount++;
+          setTimeout(processNext, 300);
         } catch (error) {
-          console.error("Error sending queued message:", error);
+          console.error("Failed to send queued message:", error);
 
-          // If too many attempts, give up
-          if (message.attempts >= 5) {
-            console.error(
-              "Giving up on message after 5 attempts:",
-              message.text
-            );
-            sentMessageIds.push(message.id);
-          }
+          // Increment attempt count
+          setQueue(prevQueue => {
+            const roomQueue = prevQueue[roomId] || [];
+            return {
+              ...prevQueue,
+              [roomId]: roomQueue.map(msg =>
+                msg.id === message.id
+                  ? { ...msg, attempts: msg.attempts + 1 }
+                  : msg
+              ),
+            };
+          });
+
+          // Continue with next message
+          processedCount++;
+          setTimeout(processNext, 300);
+        }
+      };
+
+      // Start processing
+      processNext();
+    });
+  }, [isConnected, socket, user, queue, removeFromQueue, isProcessing]);
+
+  // Check if a message is in the queue
+  const isMessageInQueue = useCallback(
+    (messageId: number): boolean => {
+      for (const roomMessages of Object.values(queue)) {
+        if (roomMessages.some((msg: Message) => msg.id === messageId)) {
+          return true;
         }
       }
-
-      // Remove sent messages from queue
-      if (sentMessageIds.length > 0) {
-        const remainingMessages = messages.filter(
-          msg => !sentMessageIds.includes(msg.id)
-        );
-        saveQueuedMessages(roomId, remainingMessages);
-        console.log(
-          `Removed ${sentMessageIds.length} sent messages from queue`
-        );
-      }
-
-      return sentMessageIds.length;
+      return false;
     },
-    [socket, isConnected, user, isAgent, getQueuedMessages, saveQueuedMessages]
+    [queue]
   );
 
-  // Process all queues
-  const processQueue = useCallback(async () => {
-    if (!socket || !isConnected || !user || processingRef.current) return;
-
-    processingRef.current = true;
-    console.log("Processing all message queues...");
-
-    try {
-      // Get all queue keys
-      const queueKeys = Object.keys(localStorage)
-        .filter(key => key.startsWith("chat_queue_"))
-        .map(key => Number.parseInt(key.replace("chat_queue_", ""), 10))
-        .filter(roomId => !isNaN(roomId));
-
-      console.log(`Found ${queueKeys.length} room queues`);
-
-      // Process each room queue
-      for (const roomId of queueKeys) {
-        await processRoomQueue(roomId);
-      }
-    } catch (error) {
-      console.error("Error processing message queues:", error);
-    } finally {
-      processingRef.current = false;
-    }
-  }, [socket, isConnected, user, processRoomQueue]);
-
-  // Get the count of queued messages
-  const getQueueCount = useCallback(
-    (roomId?: number) => {
-      try {
-        if (roomId) {
-          // Count messages for a specific room
-          return getQueuedMessages(roomId).length;
-        } else {
-          // Count all queued messages
-          const queueKeys = Object.keys(localStorage)
-            .filter(key => key.startsWith("chat_queue_"))
-            .map(key => Number.parseInt(key.replace("chat_queue_", ""), 10))
-            .filter(id => !isNaN(id));
-
-          let totalCount = 0;
-          for (const id of queueKeys) {
-            totalCount += getQueuedMessages(id).length;
-          }
-
-          return totalCount;
-        }
-      } catch (error) {
-        console.error("Error getting queue count:", error);
-        return 0;
-      }
-    },
-    [getQueuedMessages]
-  );
-
-  // Clear the queue for a specific room or all rooms
-  const clearQueue = useCallback(
-    (roomId?: number) => {
-      try {
-        if (roomId) {
-          // Clear messages for a specific room
-          saveQueuedMessages(roomId, []);
-        } else {
-          // Clear all queues
-          const queueKeys = Object.keys(localStorage)
-            .filter(key => key.startsWith("chat_queue_"))
-            .map(key => Number.parseInt(key.replace("chat_queue_", ""), 10))
-            .filter(id => !isNaN(id));
-
-          for (const id of queueKeys) {
-            saveQueuedMessages(id, []);
-          }
-        }
-
-        return true;
-      } catch (error) {
-        console.error("Error clearing queue:", error);
-        return false;
-      }
-    },
-    [saveQueuedMessages]
-  );
-
-  // Process the queue when connection is restored
+  // Process queue when connection is restored
   useEffect(() => {
-    if (!socket) return;
-
-    const handleReconnect = () => {
-      console.log("Connection restored, processing message queue...");
-      // Add a small delay to ensure socket is fully connected
-      setTimeout(() => {
-        if (socket.connected) {
-          processQueue();
-        }
+    if (isConnected && socket && user && !isProcessing) {
+      // Small delay to ensure socket is fully connected
+      const timer = setTimeout(() => {
+        processQueue();
       }, 1000);
-    };
 
-    // Listen for socket connection events
-    socket.on("connect", handleReconnect);
-
-    // Also process queue when component mounts if already connected
-    if (isConnected && socket.connected) {
-      console.log("Already connected, processing message queue...");
-      processQueue();
+      return () => clearTimeout(timer);
     }
+  }, [isConnected, socket, user, processQueue, isProcessing]);
 
-    return () => {
-      socket.off("connect", handleReconnect);
-    };
-  }, [socket, isConnected, processQueue]);
+  // Clear all queued messages for a room
+  const clearQueue = useCallback((roomId?: number) => {
+    if (roomId !== undefined) {
+      setQueue(prevQueue => {
+        const newQueue = { ...prevQueue };
+        delete newQueue[roomId];
+        return newQueue;
+      });
+    } else {
+      // Clear all queues if no roomId specified
+      setQueue({});
+    }
+  }, []);
 
   return {
     queueMessage,
-    processQueue,
+    removeFromQueue,
     getQueueCount,
+    getQueuedMessages,
+    processQueue,
     clearQueue,
+    isMessageInQueue,
+    isProcessing,
   };
 }
