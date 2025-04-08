@@ -14,7 +14,6 @@ import { ChatHeader } from "@/components/chat/chat-header";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatFooter } from "@/components/chat/chat-footer";
 import { useSocketStore } from "@/store/socket-store";
-import { useUserStore } from "@/store/user-store";
 import { ConnectionStatus } from "@/components/offline/connection-status";
 
 import type { Message, Room } from "@/store/socket-store";
@@ -35,11 +34,7 @@ export function ChatInterface({
 
   const { sendMessage, endConversation } = useSupport();
   const { isConnected } = useSocketStore();
-  const { user } = useUserStore();
   const { queueMessage, processQueue } = useMessageQueue();
-
-  // Check if user is an agent based on role name
-  const userIsAgent = user?.role_name === "Admin";
 
   const {
     messages,
@@ -49,7 +44,6 @@ export function ChatInterface({
     hasMore,
     chatContainerRef,
     onNewMessage,
-    addPendingMessage,
     markMessageAsSent,
   } = useMessages(Number(room.id), 1);
 
@@ -151,9 +145,6 @@ export function ChatInterface({
     if (!message.trim()) return;
 
     if (!isConnected) {
-      // If offline, queue the message for both users and agents
-      const clientId = addPendingMessage(message);
-
       // Then queue it for actual sending later
       queueMessage(message, room.id)
         .then(() => {
