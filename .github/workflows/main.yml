@@ -1,0 +1,44 @@
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.HOST_AUTHENTICATION_KEY }}
+
+      - name: running git pull
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.MAIN_SERVER_IP_ADDRESS }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.HOST_AUTHENTICATION_KEY }}
+          port: ${{ secrets.MAIN_PORT }}
+          script: |
+            cd /var/www/amestris_main_node_project/support-chat-app
+            git pull
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.MAIN_SERVER_IP_ADDRESS }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.HOST_AUTHENTICATION_KEY }}
+          port: ${{ secrets.MAIN_PORT }}
+          timeout: "3600s"
+          command_timeout: "60m"
+          script: |
+            cd /var/www/amestris_main_node_project
+            docker compose build nextjs
+            sudo systemctl stop amestris_main_node_nginx.service
+            docker compose stop nextjs
+            docker compose rm nextjs
+            sudo systemctl restart amestris_main_node_nginx.service
