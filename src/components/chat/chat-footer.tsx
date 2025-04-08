@@ -9,9 +9,7 @@ import { Send, Paperclip, Smile } from "lucide-react";
 import { detectTextDirection } from "@/lib/text-direction";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSocketStore } from "@/store/socket-store";
-import { useUserStore } from "@/store/user-store";
 
-// Update the ChatFooterProps interface to include the getSendButtonClass prop
 interface ChatFooterProps {
   message: string;
   onMessageChange: (value: string) => void;
@@ -19,7 +17,6 @@ interface ChatFooterProps {
   getSendButtonClass?: () => string;
 }
 
-// Then in the component, update the destructuring to include the new prop with a default value
 export function ChatFooter({
   message,
   onMessageChange,
@@ -32,10 +29,6 @@ export function ChatFooter({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { isConnected } = useSocketStore();
-  const { user } = useUserStore();
-
-  // Check if user is an agent (Admin role)
-  const isAgent = user?.role_name === "Admin";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
