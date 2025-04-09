@@ -46,12 +46,13 @@ export function ChatMessages({
     triggerOnce: false,
   });
 
-  // Trigger loading more messages when the top is in view
+  // Trigger loading more messages when the top is in view and we're online
   useEffect(() => {
-    if (inView && hasMore && !isLoading) {
+    if (inView && hasMore && !isLoading && isConnected) {
+      // Only load more when connected
       loadMore();
     }
-  }, [inView, hasMore, isLoading, loadMore]);
+  }, [inView, hasMore, isLoading, loadMore, isConnected]);
 
   // Update queue count when connection status changes
   useEffect(() => {

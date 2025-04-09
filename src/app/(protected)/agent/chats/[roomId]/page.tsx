@@ -13,7 +13,7 @@ export default function AgentChatRoomPage() {
   const roomId = parseInt(params.roomId as string, 10); // Parse roomId as a number
 
   const { adminOpenedChatRooms, isLoading } = useAdminOpenedChatRooms("active");
-  const { setCurrentRoom } = useSupport(); // Import setCurrentRoom
+  const { setCurrentRoom } = useSupport();
 
   const room = adminOpenedChatRooms.find(r => r.id === roomId);
 
