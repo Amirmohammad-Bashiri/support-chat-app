@@ -16,7 +16,7 @@ import { ChatFooter } from "@/components/chat/chat-footer";
 import { useSocketStore } from "@/store/socket-store";
 import { ConnectionStatus } from "@/components/offline/connection-status";
 
-import type { Message, Room } from "@/store/socket-store";
+import type { Room } from "@/store/socket-store";
 
 export function ChatInterface({
   room,
@@ -44,7 +44,6 @@ export function ChatInterface({
     hasMore,
     chatContainerRef,
     onNewMessage,
-    markMessageAsSent,
     addPendingMessage,
     updatePendingMessage,
     removePendingMessage,
@@ -121,29 +120,7 @@ export function ChatInterface({
     }
   }, [messages.length, isAtBottom, chatContainerRef]);
 
-  // Listen for socket events to mark messages as sent
-  useEffect(() => {
-    if (!isConnected || !markMessageAsSent) return;
-
-    const handleMessageSent = (message: Message) => {
-      if (message && message.id) {
-        markMessageAsSent(message.id);
-      }
-    };
-
-    const socket = useSocketStore.getState().socket;
-    if (socket) {
-      socket.on("user_message", handleMessageSent);
-      socket.on("agent_message", handleMessageSent);
-
-      return () => {
-        socket.off("user_message", handleMessageSent);
-        socket.off("agent_message", handleMessageSent);
-      };
-    }
-  }, [isConnected, markMessageAsSent]);
-
-  // Update the handleSendMessage function to queue messages for both users and agents when offline
+  // Handle sending a message
   const handleSendMessage = () => {
     if (!message.trim()) return;
 
@@ -170,15 +147,18 @@ export function ChatInterface({
 
       setMessage("");
     } else {
-      // If online, send normally
+      // If online, send directly
       sendMessage(message);
+
+      // No need to add a pending message for online mode
+      // as it will be immediately added via the socket event
       setMessage("");
     }
 
     scrollToBottom();
   };
 
-  // Update the getSendButtonClass function to show amber color for both users and agents when offline
+  // Get appropriate button class based on connection status
   const getSendButtonClass = () => {
     if (!isConnected) {
       return "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700";
@@ -192,9 +172,8 @@ export function ChatInterface({
     }
   };
 
-  // Update the useEffect for processing queue to remove the userIsAgent check
+  // Process the message queue when connection is restored
   useEffect(() => {
-    // When connection is restored, process the queue
     if (isConnected) {
       console.log(
         "Connection restored in chat interface, triggering queue processing..."

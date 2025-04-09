@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 import { useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
-import {} from "@/hooks/use-message-queue";
+import { useMessageQueue, ExtendedMessage } from "@/hooks/use-message-queue";
 import axiosInstance from "@/api/axios-instance";
 
 import type { Message } from "@/store/socket-store";
@@ -14,13 +14,6 @@ interface MessagesResponse {
   next: number | null;
   previous: string | null;
   results: Message[];
-}
-
-// Extended message interface to include status
-interface ExtendedMessage extends Message {
-  isPending?: boolean;
-  isSent?: boolean;
-  clientId?: string;
 }
 
 export function useMessages(supportChatSetId: number, initialPage = 1) {
@@ -37,58 +30,55 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
   const { socket, isConnected } = useSocketStore();
   const { user } = useUserStore();
   const latestMessageTimestamp = useRef<string | null>(null);
-  const pendingMessagesRef = useRef<Map<string, ExtendedMessage>>(new Map());
-  const sentMessagesIdsRef = useRef<Set<number>>(new Set());
 
-  // Keep track of all message IDs to prevent duplicates
-  const messageIdsRef = useRef<Set<number | string>>(new Set());
+  // Use the message queue hook for managing pending messages and offline functionality
+  const {
+    addPendingMessage: addPendingToQueue,
+    updatePendingMessage: updatePendingInQueue,
+    removePendingMessage: removePendingFromQueue,
+    getPendingMessages,
+    markMessageAsSent,
+    messageExists,
+    matchPendingMessageToServer,
+    sentMessagesIdsRef,
+    messageIdsRef,
+  } = useMessageQueue();
 
-  // Add a pending message to the UI
+  // Wrapper function for addPendingMessage that adapts to our hook's interface
   const addPendingMessage = useCallback(
     (text: string) => {
-      if (!user) return null;
+      const clientId = addPendingToQueue(text, supportChatSetId);
 
-      const clientId = `pending_${Date.now()}_${Math.random()
-        .toString(36)
-        .substring(2, 9)}`;
-      const pendingMessage: ExtendedMessage = {
-        id: -1 * Date.now(), // Temporary negative ID to avoid conflicts
-        text,
-        support_chat_set: supportChatSetId,
-        is_edited: false,
-        created_at: new Date().toISOString(),
-        created_by: user.id,
-        message_type: 1,
-        is_deleted: false,
-        is_read: false,
-        isPending: true,
-        isSent: false,
-        clientId,
-      };
+      if (clientId && user) {
+        // Create a pending message object
+        const pendingMessage: ExtendedMessage = {
+          id: -1 * Date.now(), // Temporary negative ID to avoid conflicts
+          text,
+          support_chat_set: supportChatSetId,
+          is_edited: false,
+          created_at: new Date().toISOString(),
+          created_by: user.id,
+          message_type: 1,
+          is_deleted: false,
+          is_read: false,
+          isPending: true,
+          isSent: false,
+          clientId, // Using clientId here to track the pending message
+        };
 
-      // Add to pending messages map
-      pendingMessagesRef.current.set(clientId, pendingMessage);
-
-      // Add to message IDs set to prevent duplicates
-      messageIdsRef.current.add(pendingMessage.id);
-
-      // Add to messages state
-      setMessages(prev => [...prev, pendingMessage]);
+        // Add to the UI by updating messages state
+        setMessages(prev => [...prev, pendingMessage]);
+      }
 
       return clientId;
     },
-    [supportChatSetId, user]
+    [addPendingToQueue, supportChatSetId, user]
   );
 
-  // Update a pending message status
+  // Wrapper function for updatePendingMessage
   const updatePendingMessage = useCallback(
     (clientId: string, updates: Partial<ExtendedMessage>) => {
-      const pendingMessage = pendingMessagesRef.current.get(clientId);
-      if (!pendingMessage) return;
-
-      // Update the pending message
-      const updatedMessage = { ...pendingMessage, ...updates };
-      pendingMessagesRef.current.set(clientId, updatedMessage);
+      updatePendingInQueue(clientId, updates);
 
       // Update in messages state
       setMessages(prev =>
@@ -97,38 +87,17 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         )
       );
     },
-    []
+    [updatePendingInQueue]
   );
 
-  // Remove a pending message
-  const removePendingMessage = useCallback((clientId: string) => {
-    const pendingMessage = pendingMessagesRef.current.get(clientId);
-    if (pendingMessage && pendingMessage.id) {
-      messageIdsRef.current.delete(pendingMessage.id);
-    }
-
-    pendingMessagesRef.current.delete(clientId);
-    setMessages(prev => prev.filter(msg => msg.clientId !== clientId));
-  }, []);
-
-  // Mark a message as sent
-  const markMessageAsSent = useCallback((messageId: number) => {
-    sentMessagesIdsRef.current.add(messageId);
-
-    // Also add to our message IDs set
-    messageIdsRef.current.add(messageId);
-
-    setMessages(prev =>
-      prev.map(msg =>
-        msg.id === messageId ? { ...msg, isPending: false, isSent: true } : msg
-      )
-    );
-  }, []);
-
-  // Helper to check if a message already exists in our state
-  const messageExists = useCallback((messageId: number | string) => {
-    return messageIdsRef.current.has(messageId);
-  }, []);
+  // Wrapper function for removePendingMessage
+  const removePendingMessage = useCallback(
+    (clientId: string) => {
+      removePendingFromQueue(clientId);
+      setMessages(prev => prev.filter(msg => msg.clientId !== clientId));
+    },
+    [removePendingFromQueue]
+  );
 
   // Fetch messages manually
   const fetchMessages = useCallback(
@@ -176,7 +145,10 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         if (pageToFetch === initialPage) {
           // On initial page load, replace all non-pending messages
           // but keep pending messages that haven't been sent yet
-          const pendingMsgs = Array.from(pendingMessagesRef.current.values());
+          const pendingMsgs = getPendingMessages().filter(
+            msg => msg.support_chat_set === supportChatSetId
+          );
+
           console.log(
             `Setting ${processedResults.length} server messages and ${pendingMsgs.length} pending messages`
           );
@@ -205,7 +177,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         setIsLoading(false);
       }
     },
-    [supportChatSetId, initialPage, hasMore]
+    [supportChatSetId, initialPage, hasMore, getPendingMessages]
   );
 
   // Fetch messages when the page changes
@@ -233,8 +205,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
 
       // Mark the message as sent
       if (typeof newMessage.id === "number" && newMessage.id > 0) {
-        sentMessagesIdsRef.current.add(newMessage.id);
-        messageIdsRef.current.add(newMessage.id);
+        markMessageAsSent(newMessage.id);
       }
 
       // Notify about new message (for the "new messages" button)
@@ -246,30 +217,8 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         { ...newMessage, isPending: false, isSent: true },
       ]);
     },
-    [supportChatSetId, messageExists]
+    [supportChatSetId, messageExists, markMessageAsSent]
   );
-
-  // Add a function to check if a pending message matches a server message
-  const matchPendingMessageToServer = useCallback((serverMessage: Message) => {
-    // This would be more robust with a proper message ID system from the server
-    // For now, we'll use text content and timestamps as a heuristic
-    const pendingMessages = Array.from(pendingMessagesRef.current.values());
-
-    for (const pendingMsg of pendingMessages) {
-      // If the text matches and the timestamp is close (within 10 seconds)
-      if (pendingMsg.text === serverMessage.text) {
-        const pendingTime = new Date(pendingMsg.created_at).getTime();
-        const serverTime = new Date(serverMessage.created_at).getTime();
-
-        // If timestamps are within 10 seconds of each other
-        if (Math.abs(pendingTime - serverTime) < 10000) {
-          return pendingMsg.clientId;
-        }
-      }
-    }
-
-    return null;
-  }, []);
 
   // Handle real-time messages
   useEffect(() => {
@@ -355,8 +304,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         // Mark all fetched messages as sent
         newMessages.forEach(msg => {
           if (typeof msg.id === "number" && msg.id > 0) {
-            sentMessagesIdsRef.current.add(msg.id);
-            messageIdsRef.current.add(msg.id);
+            markMessageAsSent(msg.id);
           }
         });
 
@@ -389,7 +337,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
     return () => {
       socket.off("connect", handleReconnect); // Proper cleanup
     };
-  }, [socket, user, supportChatSetId, messageExists]);
+  }, [socket, user, supportChatSetId, messageExists, markMessageAsSent]);
 
   // Update message status indicators when connection status changes
   useEffect(() => {

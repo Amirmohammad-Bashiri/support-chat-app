@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { type Message, useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
+
+// Extended message interface to include status
+export interface ExtendedMessage extends Message {
+  isPending?: boolean;
+  isSent?: boolean;
+  clientId?: string;
+}
 
 // Define the structure of a queued message
 interface QueuedMessage {
@@ -27,6 +34,11 @@ export function useMessageQueue() {
   const { user } = useUserStore();
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Keep track of pending messages in the UI
+  const pendingMessagesRef = useRef<Map<string, ExtendedMessage>>(new Map());
+  const sentMessagesIdsRef = useRef<Set<number>>(new Set());
+  const messageIdsRef = useRef<Set<number | string>>(new Set());
+
   // Load queue from localStorage on mount
   useEffect(() => {
     try {
@@ -45,6 +57,128 @@ export function useMessageQueue() {
   useEffect(() => {
     localStorage.setItem("message_queue", JSON.stringify(queue));
   }, [queue]);
+
+  // Add a pending message to the UI
+  const addPendingMessage = useCallback(
+    (text: string, supportChatSetId: number): string | null => {
+      if (!user) return null;
+
+      const clientId = `pending_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 9)}`;
+
+      const pendingMessage: ExtendedMessage = {
+        id: -1 * Date.now(), // Temporary negative ID to avoid conflicts
+        text,
+        support_chat_set: supportChatSetId,
+        is_edited: false,
+        created_at: new Date().toISOString(),
+        created_by: user.id,
+        message_type: 1,
+        is_deleted: false,
+        is_read: false,
+        isPending: true,
+        isSent: false,
+        clientId,
+      };
+
+      // Add to pending messages map
+      pendingMessagesRef.current.set(clientId, pendingMessage);
+
+      // Add to message IDs set to prevent duplicates
+      messageIdsRef.current.add(pendingMessage.id);
+
+      return clientId;
+    },
+    [user]
+  );
+
+  // Update a pending message status
+  const updatePendingMessage = useCallback(
+    (
+      clientId: string,
+      updates: Partial<ExtendedMessage>
+    ): ExtendedMessage | undefined => {
+      const pendingMessage = pendingMessagesRef.current.get(clientId);
+      if (!pendingMessage) return undefined;
+
+      // Update the pending message
+      const updatedMessage = { ...pendingMessage, ...updates };
+      pendingMessagesRef.current.set(clientId, updatedMessage);
+
+      return updatedMessage;
+    },
+    []
+  );
+
+  // Remove a pending message
+  const removePendingMessage = useCallback((clientId: string): void => {
+    const pendingMessage = pendingMessagesRef.current.get(clientId);
+    if (pendingMessage && pendingMessage.id) {
+      messageIdsRef.current.delete(pendingMessage.id);
+    }
+
+    pendingMessagesRef.current.delete(clientId);
+  }, []);
+
+  // Mark a message as sent
+  const markMessageAsSent = useCallback((messageId: number): void => {
+    sentMessagesIdsRef.current.add(messageId);
+
+    // Also add to our message IDs set
+    messageIdsRef.current.add(messageId);
+  }, []);
+
+  // Helper to check if a message already exists
+  const messageExists = useCallback((messageId: number | string): boolean => {
+    return messageIdsRef.current.has(messageId);
+  }, []);
+
+  // Get all pending messages
+  const getPendingMessages = useCallback((): ExtendedMessage[] => {
+    return Array.from(pendingMessagesRef.current.values());
+  }, []);
+
+  // Match a server message to a pending message
+  const matchPendingMessageToServer = useCallback(
+    (serverMessage: Message): string | null => {
+      const pendingMessages = Array.from(pendingMessagesRef.current.values());
+
+      // First try to find an exact match by text
+      for (const pendingMsg of pendingMessages) {
+        // If there's an exact text match
+        if (pendingMsg.text === serverMessage.text) {
+          // Make sure they're for the same chat room
+          if (pendingMsg.support_chat_set === serverMessage.support_chat_set) {
+            console.log(
+              `Found exact match for pending message: ${pendingMsg.text}`
+            );
+            return pendingMsg.clientId || null;
+          }
+        }
+      }
+
+      // If no exact match found, try with more relaxed constraints
+      for (const pendingMsg of pendingMessages) {
+        // If the text matches and the timestamp is close (within 10 seconds)
+        if (pendingMsg.text === serverMessage.text) {
+          const pendingTime = new Date(pendingMsg.created_at).getTime();
+          const serverTime = new Date(serverMessage.created_at).getTime();
+
+          // If timestamps are within 10 seconds of each other
+          if (Math.abs(pendingTime - serverTime) < 10000) {
+            console.log(
+              `Found timestamp-based match for pending message: ${pendingMsg.text}`
+            );
+            return pendingMsg.clientId || null;
+          }
+        }
+      }
+
+      return null;
+    },
+    []
+  );
 
   // Add a message to the queue
   const queueMessage = useCallback(
@@ -158,6 +292,27 @@ export function useMessageQueue() {
             ? "agent_send_message"
             : "user_send_message";
 
+          // First, find and remove any UI pending message with matching text
+          // This ensures the UI is cleaned up before localStorage
+          const pendingMessages = Array.from(
+            pendingMessagesRef.current.values()
+          );
+          for (const pendingMsg of pendingMessages) {
+            if (pendingMsg.text === message.text) {
+              // Found a match - remove it from the UI references
+              const clientId = pendingMsg.clientId;
+              if (clientId) {
+                console.log(`Cleaning up UI for pending message: ${clientId}`);
+                pendingMessagesRef.current.delete(clientId);
+                if (pendingMsg.id) {
+                  messageIdsRef.current.delete(pendingMsg.id);
+                }
+              }
+              break;
+            }
+          }
+
+          // Then send the message to the server
           socket.emit(eventName, {
             message: message.text,
             support_chat_set_id: roomId,
@@ -169,7 +324,7 @@ export function useMessageQueue() {
             })`
           );
 
-          // Remove the message from the queue after sending
+          // Finally, remove the message from localStorage queue
           removeFromQueue(roomId, message.id);
 
           // Process next message after a short delay
@@ -242,6 +397,7 @@ export function useMessageQueue() {
   }, []);
 
   return {
+    // Queue methods
     queueMessage,
     removeFromQueue,
     getQueueCount,
@@ -250,5 +406,17 @@ export function useMessageQueue() {
     clearQueue,
     isMessageInQueue,
     isProcessing,
+    // Message status methods
+    addPendingMessage,
+    updatePendingMessage,
+    removePendingMessage,
+    getPendingMessages,
+    markMessageAsSent,
+    messageExists,
+    matchPendingMessageToServer,
+    // Refs for direct access
+    pendingMessagesRef,
+    sentMessagesIdsRef,
+    messageIdsRef,
   };
 }
