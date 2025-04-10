@@ -5,7 +5,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -89,21 +89,25 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   };
 
   return (
-    <Card className="w-full max-w-xl mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">ورود</CardTitle>
-        <CardDescription>
+    <Card className="border border-border/40 shadow-sm w-full">
+      <CardHeader className="space-y-1 pb-2">
+        <CardTitle className="text-xl font-semibold text-center">
+          ورود
+        </CardTitle>
+        <CardDescription className="text-center text-sm">
           برای شروع، شماره موبایل خود را وارد کنید
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-4">
           <div className="space-y-2">
-            <Label htmlFor="countryDialingCode">کد کشور</Label>
+            <Label htmlFor="countryDialingCode" className="text-sm font-medium">
+              کد کشور
+            </Label>
             <Select
               onValueChange={value => setValue("countryDialingCode", value)}
               defaultValue={selectedCountryCode}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full h-10 rounded-md border border-input bg-background">
                 <SelectValue placeholder="کد کشور را انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
@@ -116,13 +120,15 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mobileNumber">شماره موبایل</Label>
+            <Label htmlFor="mobileNumber" className="text-sm font-medium">
+              شماره موبایل
+            </Label>
             <div className="relative">
-              <PhoneIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+              <PhoneIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="mobileNumber"
                 type="tel"
-                className="pl-10"
+                className="h-10 pl-10 rounded-md border border-input bg-background"
                 placeholder="9120000000"
                 {...register("mobileNumber", {
                   required: "شماره موبایل الزامی است",
@@ -134,24 +140,29 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               />
             </div>
             {errors.mobileNumber && (
-              <p className="text-sm text-rose-500">
+              <p className="text-sm text-destructive mt-1">
                 {errors.mobileNumber.message}
               </p>
             )}
           </div>
           {loginError && (
-            <Alert variant="destructive">
-              <AlertTitle>خطا</AlertTitle>
+            <Alert variant="destructive" className="text-sm py-2">
               <AlertDescription>{loginError}</AlertDescription>
             </Alert>
           )}
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <Button type="submit" disabled={isLoading} className="w-full">
+        <CardFooter className="flex flex-col space-y-2 pt-2 pb-4">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-10 rounded-md font-medium transition-colors">
             {isLoading ? "در حال ورود..." : "ورود"}
           </Button>
           {loginError && (
-            <Button onClick={handleRetry} variant="outline" className="w-full">
+            <Button
+              onClick={handleRetry}
+              variant="outline"
+              className="w-full h-10 rounded-md font-medium mt-2">
               تلاش مجدد
             </Button>
           )}

@@ -21,8 +21,8 @@ import {
 } from "@/components/ui/input-otp";
 import { useVerifyCode } from "@/hooks/auth/use-verify-code";
 import { useLogin } from "@/hooks/auth/use-login";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface CodeVerificationFormProps {
   mobileNumber: string;
@@ -111,95 +111,114 @@ export default function CodeVerificationForm({
   };
 
   return (
-    <Card className="w-full max-w-xl mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-semibold text-center">
+    <Card className="border border-border/40 shadow-sm w-full">
+      <CardHeader className="space-y-1 pb-2">
+        <CardTitle className="text-xl font-semibold text-center">
           تأیید شماره تلفن شما
         </CardTitle>
-        <CardDescription className="text-center">
+        <CardDescription className="text-center text-sm">
           کد تایید به شماره{" "}
           <span className="font-bold">{mobileNumber.slice(1)}+</span> ارسال شد
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <CardContent className="pt-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {!userExists && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <Label
-                  htmlFor="firstName"
-                  className="block text-sm font-medium">
+                <Label htmlFor="firstName" className="text-sm font-medium">
                   نام
                 </Label>
                 <Input
                   id="firstName"
                   type="text"
-                  className="w-full border rounded p-2"
+                  className="h-10 mt-1 rounded-md border border-input bg-background"
                   {...register("firstName", {
                     required: "لطفا نام خود را وارد کنید",
                   })}
                 />
                 {errors.firstName && (
-                  <p className="text-sm text-rose-500 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     {errors.firstName.message}
                   </p>
                 )}
               </div>
               <div>
-                <Label htmlFor="lastName" className="block text-sm font-medium">
+                <Label htmlFor="lastName" className="text-sm font-medium">
                   نام خانوادگی
                 </Label>
                 <Input
                   id="lastName"
                   type="text"
-                  className="w-full border rounded p-2"
+                  className="h-10 mt-1 rounded-md border border-input bg-background"
                   {...register("lastName", {
                     required: "لطفا نام خانوادگی خود را وارد کنید",
                   })}
                 />
                 {errors.lastName && (
-                  <p className="text-sm text-rose-500 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     {errors.lastName.message}
                   </p>
                 )}
               </div>
             </div>
           )}
-          <div className="space-y-2 flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center space-y-2 py-2">
             <InputOTP
               maxLength={5}
               autoFocus
-              onChange={value => setValue("verificationCode", value)}>
-              <InputOTPGroup style={{ direction: "ltr" }}>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
+              onChange={value => setValue("verificationCode", value)}
+              className="gap-1 sm:gap-2">
+              <InputOTPGroup
+                style={{ direction: "ltr" }}
+                className="gap-1 sm:gap-2 md:gap-3">
+                <InputOTPSlot
+                  index={0}
+                  className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-md border border-input"
+                />
+                <InputOTPSlot
+                  index={1}
+                  className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-md border border-input"
+                />
+                <InputOTPSlot
+                  index={2}
+                  className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-md border border-input"
+                />
+                <InputOTPSlot
+                  index={3}
+                  className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-md border border-input"
+                />
+                <InputOTPSlot
+                  index={4}
+                  className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-md border border-input"
+                />
               </InputOTPGroup>
             </InputOTP>
             {errors.verificationCode && (
-              <p className="text-sm text-red-500 text-center mt-2">
+              <p className="text-xs text-destructive text-center">
                 لطفاً یک کد ۵ رقمی معتبر وارد کنید
               </p>
             )}
           </div>
           {verificationError && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="text-sm py-2">
               <AlertDescription>{verificationError}</AlertDescription>
             </Alert>
           )}
-          <Button type="submit" disabled={isVerifying} className="w-full">
+          <Button
+            type="submit"
+            disabled={isVerifying}
+            className="w-full h-10 rounded-md font-medium transition-colors">
             {isVerifying ? "در حال تأیید..." : "تأیید کد"}
           </Button>
         </form>
-        <div className="text-sm text-gray-500 text-center mt-4">
+        <div className="text-xs text-muted-foreground text-center mt-4">
           {countdown > 0 ? (
             <p>ارسال مجدد کد در {countdown} ثانیه</p>
           ) : (
             <Button
               variant="link"
-              className="p-0"
+              className="p-0 h-auto text-xs font-normal"
               onClick={handleResend}
               disabled={isResending}>
               {isResending ? "در حال ارسال مجدد..." : "ارسال مجدد کد"}
@@ -207,8 +226,11 @@ export default function CodeVerificationForm({
           )}
         </div>
       </CardContent>
-      <CardFooter>
-        <Button variant="outline" onClick={onBack} className="w-full">
+      <CardFooter className="pt-2 pb-4">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="w-full h-10 rounded-md font-medium">
           <ArrowLeft className="mr-2 h-4 w-4" /> بازگشت به صفحه ورود
         </Button>
       </CardFooter>
