@@ -42,6 +42,7 @@ export default function LoginOTPContainer() {
       {formState === "verification" && loginResponse && (
         <CodeVerificationForm
           mobileNumber={loginResponse.mobileNumber}
+          userExists={loginResponse.userExist}
           countryDialingCode={loginResponse.mobileNumber.slice(0, 3)}
           initialTimeout={loginResponse.timeout}
           onSuccess={handleVerificationSuccess}

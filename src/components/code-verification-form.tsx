@@ -21,23 +21,29 @@ import {
 } from "@/components/ui/input-otp";
 import { useVerifyCode } from "@/hooks/auth/use-verify-code";
 import { useLogin } from "@/hooks/auth/use-login";
+import { Label } from "./ui/label";
+import { Input } from "./ui/input";
 
 interface CodeVerificationFormProps {
   mobileNumber: string;
   countryDialingCode: string;
   initialTimeout: number;
+  userExists: boolean;
   onSuccess: () => void;
   onBack: () => void;
 }
 
 interface VerificationFormInputs {
   verificationCode: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export default function CodeVerificationForm({
   mobileNumber,
   countryDialingCode,
   initialTimeout,
+  userExists,
   onSuccess,
   onBack,
 }: CodeVerificationFormProps) {
@@ -45,13 +51,14 @@ export default function CodeVerificationForm({
     null
   );
   const [countdown, setCountdown] = useState(initialTimeout);
-  const { verify, isLoading: isVerifying } = useVerifyCode();
+  const { verify, isLoading: isVerifying } = useVerifyCode({ userExists });
   const { login, isLoading: isResending } = useLogin();
 
   const {
     handleSubmit,
     formState: { errors },
     setValue,
+    register,
   } = useForm<VerificationFormInputs>();
 
   useEffect(() => {
@@ -75,6 +82,8 @@ export default function CodeVerificationForm({
         await verify({
           mobile_number: mobileNumber,
           verification_code: data.verificationCode,
+          first_name: data.firstName,
+          last_name: data.lastName,
         });
         onSuccess();
       } catch (error) {
@@ -114,6 +123,48 @@ export default function CodeVerificationForm({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {!userExists && (
+            <div className="space-y-4">
+              <div>
+                <Label
+                  htmlFor="firstName"
+                  className="block text-sm font-medium">
+                  نام
+                </Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  className="w-full border rounded p-2"
+                  {...register("firstName", {
+                    required: "لطفا نام خود را وارد کنید",
+                  })}
+                />
+                {errors.firstName && (
+                  <p className="text-sm text-rose-500 mt-1">
+                    {errors.firstName.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="lastName" className="block text-sm font-medium">
+                  نام خانوادگی
+                </Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  className="w-full border rounded p-2"
+                  {...register("lastName", {
+                    required: "لطفا نام خانوادگی خود را وارد کنید",
+                  })}
+                />
+                {errors.lastName && (
+                  <p className="text-sm text-rose-500 mt-1">
+                    {errors.lastName.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
           <div className="space-y-2 flex items-center justify-center">
             <InputOTP
               maxLength={5}

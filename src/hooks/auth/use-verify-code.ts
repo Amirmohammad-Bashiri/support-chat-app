@@ -6,6 +6,12 @@ import axiosInstance from "@/api/axios-instance";
 interface VerificationData {
   mobile_number: string;
   verification_code: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface VerifyCodeArgs {
+  userExists: boolean;
 }
 
 async function verifyCode(url: string, { arg }: { arg: VerificationData }) {
@@ -13,11 +19,12 @@ async function verifyCode(url: string, { arg }: { arg: VerificationData }) {
   return response.data;
 }
 
-export function useVerifyCode() {
-  const { trigger, error, isMutating, reset } = useSWRMutation(
-    "/v1/users/login/verification-login",
-    verifyCode
-  );
+export function useVerifyCode({ userExists }: VerifyCodeArgs) {
+  const url = userExists
+    ? "/v1/users/login/verification-login"
+    : "/v1/users/login/verification-creation";
+
+  const { trigger, error, isMutating, reset } = useSWRMutation(url, verifyCode);
 
   const verify = async (data: VerificationData) => {
     try {
