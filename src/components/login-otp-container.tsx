@@ -38,7 +38,7 @@ export default function LoginOTPContainer() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl">
+      <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-3xl xl:max-w-4xl">
         {formState === "login" && <LoginForm onSuccess={handleLoginSuccess} />}
         {formState === "verification" && loginResponse && (
           <CodeVerificationForm
