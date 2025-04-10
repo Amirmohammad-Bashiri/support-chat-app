@@ -30,10 +30,9 @@ export const useSupport = () => {
     (subject: string, description: string) => {
       if (socket && isConnected && !isAgent) {
         socket.emit("request_support_chat", { subject, description });
-        router.push("/user/chats");
       }
     },
-    [socket, isConnected, isAgent, router]
+    [socket, isConnected, isAgent]
   );
 
   const joinRoom = useCallback(
@@ -49,17 +48,17 @@ export const useSupport = () => {
   const listenToUserCreatedRoom = useCallback(() => {
     if (socket && user) {
       socket.on("user_created_room", (room: Room) => {
-        console.log("Data received from user_created_room event:", room);
         if (user.role_name === "Business Unit Owner") {
-          setCurrentRoom(room.id); // Set the current room
+          setCurrentRoom(room.id);
+          router.push(`/user/chat/${room.id}`);
         }
       });
 
       return () => {
-        socket.off("user_created_room"); // Cleanup listener
+        socket.off("user_created_room");
       };
     }
-  }, [socket, user, setCurrentRoom]);
+  }, [socket, user, setCurrentRoom, router]);
 
   const sendMessage = useCallback(
     (text: string) => {
