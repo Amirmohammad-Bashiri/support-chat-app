@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import io from "socket.io-client";
+
 import { type Room, useSocketStore } from "@/store/socket-store";
 import { useUserStore } from "@/store/user-store";
 import { useOpenedChatRooms } from "@/hooks/use-opened-chat-rooms";

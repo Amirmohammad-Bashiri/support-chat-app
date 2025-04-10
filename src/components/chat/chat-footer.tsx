@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,7 +98,7 @@ export function ChatFooter({
               type="button"
               size="icon"
               variant="ghost"
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-indigo-600 hover:bg-transparent">
+              className="absolute left-2 top-1/2 text-gray-400 hover:text-indigo-600 hover:bg-transparent">
               <Smile className="h-5 w-5" />
             </Button>
           </motion.div>
