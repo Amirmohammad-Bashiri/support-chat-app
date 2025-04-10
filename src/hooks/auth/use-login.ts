@@ -18,7 +18,7 @@ async function loginUser(
   { arg }: { arg: LoginFormInputs }
 ): Promise<LoginResponse> {
   const response = await axiosInstance.post(url, {
-    mobile_number: arg.mobileNumber,
+    mobile_number: arg.mobileNumber, // Already sanitized in the calling component
     country_dialing_code: arg.countryDialingCode,
   });
   return response.data;

@@ -56,8 +56,25 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   const onSubmit: SubmitHandler<LoginFormInputs> = async data => {
     setLoginError(null);
+
+    // Sanitize mobile number
+    let sanitizedMobileNumber = data.mobileNumber;
+    if (sanitizedMobileNumber.startsWith("0")) {
+      sanitizedMobileNumber = sanitizedMobileNumber.substring(1);
+    }
+    if (
+      sanitizedMobileNumber.startsWith(selectedCountryCode.replace("+", ""))
+    ) {
+      sanitizedMobileNumber = sanitizedMobileNumber.substring(
+        selectedCountryCode.length - 1
+      );
+    }
+
     try {
-      const response = await login(data);
+      const response = await login({
+        ...data,
+        mobileNumber: sanitizedMobileNumber,
+      });
       onSuccess(response);
     } catch (err) {
       setLoginError(
@@ -106,7 +123,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                 id="mobileNumber"
                 type="tel"
                 className="pl-10"
-                placeholder="09120000000"
+                placeholder="9120000000"
                 {...register("mobileNumber", {
                   required: "شماره موبایل الزامی است",
                   pattern: {

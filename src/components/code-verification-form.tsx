@@ -117,8 +117,8 @@ export default function CodeVerificationForm({
           تأیید شماره تلفن شما
         </CardTitle>
         <CardDescription className="text-center">
-          کد تایید به شماره <span className="font-bold">{mobileNumber}</span>{" "}
-          ارسال شد
+          کد تایید به شماره{" "}
+          <span className="font-bold">{mobileNumber.slice(1)}+</span> ارسال شد
         </CardDescription>
       </CardHeader>
       <CardContent>
