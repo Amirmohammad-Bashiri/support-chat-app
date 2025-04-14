@@ -187,7 +187,7 @@ export function ChatInterface({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="h-[calc(100vh-5rem)] md:h-[calc(100vh-6rem)] flex flex-col relative rounded-xl overflow-hidden shadow-lg border border-gray-100"
+      className="min-h-[calc(100vh-5rem)] md:min-h-[calc(100vh-6rem)] flex flex-col relative rounded-xl overflow-hidden shadow-lg border border-gray-100"
       dir="rtl">
       <ChatHeader
         subject={room.subject}

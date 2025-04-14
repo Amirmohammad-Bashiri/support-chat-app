@@ -6,6 +6,7 @@ import useUser from "@/hooks/useUser";
 import { useUserStore } from "@/store/user-store";
 import { Navbar } from "@/components/navbar";
 import { SocketInitializer } from "@/components/socket-initializer";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function ProtectedLayout({
   children,
@@ -25,13 +26,13 @@ export default function ProtectedLayout({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading...
+        <Spinner />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
       <SocketInitializer />
       <Navbar user={user || null} />
       <main className="container mx-auto py-2 md:py-6 px-4">{children}</main>

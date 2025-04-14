@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -222,7 +220,7 @@ export function Sidebar({ children }: SidebarProps) {
     <div
       className={cn(
         "relative z-10 bg-white shadow-sm",
-        "w-72 h-[calc(100vh-4rem)]",
+        "w-72 h-[calc(100dvh-6rem)]",
         "border-l border-l-primary/10",
         "overflow-hidden flex flex-col"
       )}>

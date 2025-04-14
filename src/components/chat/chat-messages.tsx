@@ -37,9 +37,6 @@ export function ChatMessages({
   const [queueCount, setQueueCount] = useState(0);
   const { getQueueCount } = useMessageQueue();
 
-  // Check if user is an agent (Admin role)
-  const isAgent = user?.role_name === "Admin";
-
   // Observe the top of the chat for loading more messages
   const { ref, inView } = useInView({
     threshold: 0.1,
@@ -111,7 +108,7 @@ export function ChatMessages({
     <div className="space-y-3 py-2">
       {/* Offline notification banner */}
       <AnimatePresence>
-        {!isConnected && !isAgent && (
+        {!isConnected && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}

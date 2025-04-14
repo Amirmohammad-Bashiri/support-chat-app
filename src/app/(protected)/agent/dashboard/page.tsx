@@ -1,21 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { useSupport } from "@/hooks/socket/use-socket";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 export default function AgentDashboardPage() {
   const { rooms } = useSupport();
-  const router = useRouter();
 
   const activeRooms = rooms.filter(room => room.is_active);
   const pendingRooms = rooms.filter(room => !room.agent);
-
-  const handleJoinChat = (roomId: number) => {
-    router.push(`/agent/chats/${roomId}`);
-  };
 
   return (
     <div className="p-2 sm:p-4 space-y-4" dir="rtl">
@@ -53,7 +45,7 @@ export default function AgentDashboardPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
+      {/* <Card className="shadow-sm">
         <CardHeader className="bg-black text-white p-3">
           <CardTitle className="text-sm sm:text-base">
             درخواست‌های پشتیبانی در انتظار
@@ -86,7 +78,7 @@ export default function AgentDashboardPage() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 }

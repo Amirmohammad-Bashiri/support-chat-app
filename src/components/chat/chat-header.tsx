@@ -42,7 +42,7 @@ export function ChatHeader({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.3 }}>
-          {isAgent ? `موضوع: ${subject}` : "موضوع"}
+          {`موضوع: ${subject}`}
         </motion.span>
       </motion.div>
       {isAgent && (
