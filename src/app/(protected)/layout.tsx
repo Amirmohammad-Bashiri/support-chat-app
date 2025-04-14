@@ -34,7 +34,7 @@ export default function ProtectedLayout({
     <div className="min-h-screen bg-gray-50">
       <SocketInitializer />
       <Navbar user={user || null} />
-      <main className="container mx-auto py-6 px-4">{children}</main>
+      <main className="container mx-auto py-2 md:py-6 px-4">{children}</main>
     </div>
   );
 }
