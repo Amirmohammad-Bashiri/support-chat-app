@@ -197,7 +197,7 @@ export function ChatInterface({
 
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-gray-50 to-white relative">
+        className="flex-1 overflow-y-auto p-2 sm:p-4 bg-gradient-to-b from-gray-50 to-white relative">
         <AnimatePresence>
           {isLoading && (
             <motion.div
@@ -233,7 +233,7 @@ export function ChatInterface({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="p-4 bg-red-50 text-red-500 rounded-lg text-center my-4">
+              className="p-3 sm:p-4 bg-red-50 text-red-500 rounded-lg text-center my-2 sm:my-4 text-sm">
               خطا در بارگذاری پیام‌ها
             </motion.div>
           )}
@@ -246,14 +246,14 @@ export function ChatInterface({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="flex items-center gap-2 mr-10 mt-2">
+              className="flex items-center gap-1 sm:gap-2 mr-6 sm:mr-10 mt-2">
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-                className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs">
+                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs">
                 {isAgent ? "A" : "C"}
               </motion.div>
-              <div className="bg-white p-3 rounded-2xl rounded-bl-none shadow-sm border border-gray-100">
+              <div className="bg-white p-2 sm:p-3 rounded-2xl rounded-bl-none shadow-sm border border-gray-100">
                 <div className="flex space-x-1 rtl:space-x-reverse">
                   <motion.div
                     animate={{ y: [0, -5, 0] }}
@@ -262,7 +262,7 @@ export function ChatInterface({
                       repeat: Number.POSITIVE_INFINITY,
                       delay: 0,
                     }}
-                    className="w-2 h-2 rounded-full bg-gray-300"></motion.div>
+                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-300"></motion.div>
                   <motion.div
                     animate={{ y: [0, -5, 0] }}
                     transition={{
@@ -270,7 +270,7 @@ export function ChatInterface({
                       repeat: Number.POSITIVE_INFINITY,
                       delay: 0.15,
                     }}
-                    className="w-2 h-2 rounded-full bg-gray-300"></motion.div>
+                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-300"></motion.div>
                   <motion.div
                     animate={{ y: [0, -5, 0] }}
                     transition={{
@@ -278,7 +278,7 @@ export function ChatInterface({
                       repeat: Number.POSITIVE_INFINITY,
                       delay: 0.3,
                     }}
-                    className="w-2 h-2 rounded-full bg-gray-300"></motion.div>
+                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-300"></motion.div>
                 </div>
               </div>
             </motion.div>
@@ -294,7 +294,7 @@ export function ChatInterface({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-10">
+              className="fixed bottom-20 sm:bottom-24 left-1/2 transform -translate-x-1/2 z-10">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -309,7 +309,7 @@ export function ChatInterface({
                 }}>
                 <Button
                   onClick={scrollToBottom}
-                  className="rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg px-4 py-2 flex items-center hover:from-indigo-700 hover:to-purple-700 transition-all">
+                  className="rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg px-3 py-1.5 sm:px-4 sm:py-2 flex items-center hover:from-indigo-700 hover:to-purple-700 transition-all text-xs sm:text-sm">
                   <motion.div
                     animate={{ y: [0, 2, 0] }}
                     transition={{
@@ -317,7 +317,7 @@ export function ChatInterface({
                       duration: 1,
                       repeatDelay: 0.5,
                     }}>
-                    <ArrowDown className="h-4 w-4 ml-2" />
+                    <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
                   </motion.div>
                   پیام‌های جدید
                 </Button>

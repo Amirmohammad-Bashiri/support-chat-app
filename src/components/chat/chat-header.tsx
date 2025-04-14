@@ -20,9 +20,9 @@ export function ChatHeader({
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="border-b bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 flex justify-between items-center">
+      className="border-b bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-2 sm:p-4 flex justify-between items-center">
       <motion.div
-        className="flex items-center gap-2"
+        className="flex items-center gap-1 sm:gap-2"
         initial={{ x: -10, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.3 }}>
@@ -35,10 +35,10 @@ export function ChatHeader({
             repeat: Number.POSITIVE_INFINITY,
             repeatDelay: 10,
           }}>
-          <MessageCircle className="h-5 w-5" />
+          <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
         </motion.div>
         <motion.span
-          className="font-medium"
+          className="font-medium text-sm sm:text-base truncate max-w-[150px] sm:max-w-[250px]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.3 }}>
@@ -55,11 +55,12 @@ export function ChatHeader({
           <Button
             variant="ghost"
             onClick={onEndChat}
-            className="text-white hover:bg-white/20 hover:text-white">
+            className="text-white hover:bg-white/20 hover:text-white text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-10">
             <motion.div
               whileHover={{ rotate: 90 }}
-              transition={{ duration: 0.2 }}>
-              <X className="h-4 w-4 ml-2" />
+              transition={{ duration: 0.2 }}
+              className="hidden sm:block">
+              <X className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
             </motion.div>
             پایان گفتگو
           </Button>

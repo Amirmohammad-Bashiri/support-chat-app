@@ -117,9 +117,9 @@ export function ChatMessages({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
-            className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-2 sm:p-3">
             <div className="flex items-center gap-2">
-              <div className="flex-shrink-0 bg-amber-100 p-2 rounded-full">
+              <div className="flex-shrink-0 bg-amber-100 p-1.5 sm:p-2 rounded-full">
                 <motion.div
                   animate={{
                     boxShadow: [
@@ -130,17 +130,21 @@ export function ChatMessages({
                   }}
                   transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
                   className="relative">
-                  <WifiOff className="h-5 w-5 text-amber-600" />
+                  <WifiOff className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                 </motion.div>
               </div>
               <div className="flex-1">
-                <p className="font-medium text-amber-800">
+                <p className="font-medium text-amber-800 text-xs sm:text-sm">
                   حالت آفلاین فعال است
                 </p>
-                <p className="text-amber-700 text-xs mt-1">
+                <p className="text-amber-700 text-xs mt-1 hidden sm:block">
                   پیام‌های شما در دستگاه شما ذخیره می‌شوند و به محض اتصال مجدد
                   به اینترنت به صورت خودکار ارسال خواهند شد.
                   {queueCount > 0 && ` (${queueCount} پیام در صف ارسال)`}
+                </p>
+                <p className="text-amber-700 text-xs mt-1 sm:hidden">
+                  پیام‌ها پس از اتصال مجدد ارسال می‌شوند.
+                  {queueCount > 0 && ` (${queueCount} پیام در صف)`}
                 </p>
               </div>
             </div>
@@ -196,7 +200,7 @@ export function ChatMessages({
               style={{ direction: "ltr" }}>
               {showTimeGroup && (
                 <motion.div
-                  className="flex justify-center my-4"
+                  className="flex justify-center my-2 sm:my-4"
                   variants={timeGroupVariants}
                   initial="initial"
                   animate="animate">
@@ -217,21 +221,21 @@ export function ChatMessages({
                 data-id={msg.id}
                 className={`flex ${
                   isSentByCurrentUser ? "justify-end" : "justify-start"
-                } items-end gap-2`}>
+                } items-end gap-1 sm:gap-2`}>
                 {!isSentByCurrentUser && (
                   <motion.div
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.2 }}
                     whileHover={{ scale: 1.1 }}
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
                     {isCurrentUser ? "C" : "A"}
                   </motion.div>
                 )}
 
                 <motion.div
                   whileHover={{ scale: 1.01 }}
-                  className={`min-w-[120px] max-w-[280px] md:max-w-[350px] rounded-2xl px-4 py-3 shadow-sm ${
+                  className={`min-w-[80px] sm:min-w-[120px] max-w-[220px] sm:max-w-[280px] md:max-w-[350px] rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-sm ${
                     isSentByCurrentUser
                       ? showPendingIndicator
                         ? "bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-br-none"
@@ -241,11 +245,13 @@ export function ChatMessages({
                   {showPendingIndicator && (
                     <div className="flex items-center justify-start gap-1 mb-1 text-xs text-amber-100">
                       <Clock className="h-3 w-3" />
-                      <span>ارسال پس از اتصال مجدد</span>
+                      <span className="text-[10px] sm:text-xs">
+                        ارسال پس از اتصال مجدد
+                      </span>
                     </div>
                   )}
                   <p
-                    className="text-sm leading-relaxed break-words"
+                    className="text-xs sm:text-sm leading-relaxed break-words"
                     style={{
                       direction: textDirection,
                       textAlign: textDirection === "rtl" ? "right" : "left",
@@ -253,7 +259,7 @@ export function ChatMessages({
                     {msg.text}
                   </p>
                   <div
-                    className={`flex items-center justify-end gap-1 mt-1 text-xs ${
+                    className={`flex items-center justify-end gap-1 mt-1 text-[10px] sm:text-xs ${
                       isSentByCurrentUser ? "text-indigo-100" : "text-gray-500"
                     }`}>
                     <span>
@@ -271,7 +277,7 @@ export function ChatMessages({
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             className="flex items-center">
-                            <Clock className="h-3 w-3 text-amber-300" />
+                            <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-amber-300" />
                           </motion.div>
                         )}
                         {showSentIndicator && (
@@ -279,7 +285,7 @@ export function ChatMessages({
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             className="flex items-center">
-                            <Check className="h-3 w-3 text-green-300" />
+                            <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-300" />
                           </motion.div>
                         )}
                         {showReadIndicator && (
@@ -292,7 +298,7 @@ export function ChatMessages({
                               damping: 15,
                               delay: 0.3,
                             }}>
-                            <CheckCheck className="h-3 w-3 text-green-300" />
+                            <CheckCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-300" />
                           </motion.div>
                         )}
                       </>
@@ -306,7 +312,7 @@ export function ChatMessages({
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.2 }}
                     whileHover={{ scale: 1.1 }}
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
                     {user?.id.toString().charAt(0) || "U"}
                   </motion.div>
                 )}
