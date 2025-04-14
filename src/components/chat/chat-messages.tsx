@@ -251,7 +251,7 @@ export function ChatMessages({
                     </div>
                   )}
                   <p
-                    className="text-xs sm:text-sm leading-relaxed break-words"
+                    className="text-sm sm:text-base leading-relaxed break-words"
                     style={{
                       direction: textDirection,
                       textAlign: textDirection === "rtl" ? "right" : "left",
