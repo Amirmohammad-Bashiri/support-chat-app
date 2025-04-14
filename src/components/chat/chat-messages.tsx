@@ -235,7 +235,7 @@ export function ChatMessages({
 
                 <motion.div
                   whileHover={{ scale: 1.01 }}
-                  className={`min-w-[80px] sm:min-w-[120px] max-w-[220px] sm:max-w-[280px] md:max-w-[350px] rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-sm ${
+                  className={`min-w-[80px] sm:min-w-[120px] max-w-[200px] sm:max-w-[280px] md:max-w-[350px] rounded-2xl px-2.5 sm:px-4 py-1.5 sm:py-3 shadow-sm ${
                     isSentByCurrentUser
                       ? showPendingIndicator
                         ? "bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-br-none"

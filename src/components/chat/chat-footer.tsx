@@ -3,10 +3,21 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Paperclip, Smile } from "lucide-react";
-import { detectTextDirection } from "@/lib/text-direction";
 import { motion, AnimatePresence } from "framer-motion";
+import { Send, Paperclip, Smile } from "lucide-react";
+
+import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import EmojiPicker, {
+  Theme,
+  EmojiStyle,
+  type EmojiClickData,
+} from "emoji-picker-react";
 
 interface ChatFooterProps {
   message: string;
@@ -24,6 +35,7 @@ export function ChatFooter({
 }: ChatFooterProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [textDirection, setTextDirection] = useState<"rtl" | "ltr">("rtl"); // Default to RTL for Persian
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { isConnected } = useSocketStore();
@@ -39,6 +51,14 @@ export function ChatFooter({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e as unknown as React.FormEvent);
+    }
+  };
+
+  const handleEmojiSelect = (emojiData: EmojiClickData) => {
+    onMessageChange(message + emojiData.emoji);
+    setEmojiPickerOpen(false);
+    if (inputRef.current) {
+      inputRef.current.focus();
     }
   };
 
@@ -65,10 +85,7 @@ export function ChatFooter({
       <form
         onSubmit={handleSubmit}
         className="flex w-full gap-1 sm:gap-2 items-center">
-        <motion.div
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.1 }}
-          className="hidden sm:block">
+        <div className="hidden sm:block">
           <Button
             type="button"
             size="icon"
@@ -76,7 +93,7 @@ export function ChatFooter({
             className="text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full">
             <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-        </motion.div>
+        </div>
 
         <motion.div
           className="relative flex-1"
@@ -92,21 +109,46 @@ export function ChatFooter({
             onBlur={() => setIsFocused(false)}
             onKeyDown={handleKeyDown}
             placeholder="پیام خود را بنویسید..."
-            className="flex-1 pr-4 pl-10 py-4 sm:py-6 rounded-full border-gray-200 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition-all text-sm sm:text-base"
+            className="flex-1 pr-4 pl-10 py-3 sm:py-6 rounded-full border-gray-200 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition-all text-sm sm:text-base"
             style={{
               direction: textDirection,
               textAlign: textDirection === "rtl" ? "right" : "left",
             }}
           />
-          <motion.div whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.1 }}>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 hover:bg-transparent h-8 w-8">
-              <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-          </motion.div>
+
+          <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+            <PopoverTrigger asChild>
+              <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="text-gray-400 hover:text-indigo-600 hover:bg-transparent h-8 w-8">
+                  <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent
+              side="top"
+              align="start"
+              sideOffset={5}
+              className="p-0 border-none shadow-lg w-auto"
+              onInteractOutside={() => setEmojiPickerOpen(false)}>
+              <div className="emoji-picker-container" dir="ltr">
+                <EmojiPicker
+                  onEmojiClick={handleEmojiSelect}
+                  theme={Theme.LIGHT}
+                  emojiStyle={EmojiStyle.NATIVE}
+                  searchPlaceHolder="Search emoji..."
+                  width={300}
+                  height={400}
+                  previewConfig={{ showPreview: false }}
+                  lazyLoadEmojis={true}
+                  skinTonesDisabled
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
         </motion.div>
 
         <AnimatePresence mode="wait">
@@ -122,7 +164,7 @@ export function ChatFooter({
               <Button
                 type="submit"
                 size="icon"
-                className={`rounded-full w-10 h-10 sm:w-12 sm:h-12 ${
+                className={`rounded-full w-9 h-9 sm:w-12 sm:h-12 ${
                   !isConnected
                     ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
                     : getSendButtonClass()
@@ -151,7 +193,7 @@ export function ChatFooter({
                     repeatDelay: 3,
                     duration: 0.3,
                   }}>
-                  <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <Send className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
                 </motion.div>
               </Button>
             </motion.div>
@@ -164,9 +206,9 @@ export function ChatFooter({
               <Button
                 type="submit"
                 size="icon"
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 text-gray-400 cursor-not-allowed hover:bg-gray-200 transition-all duration-200"
+                className="rounded-full w-9 h-9 sm:w-12 sm:h-12 bg-gray-200 text-gray-400 cursor-not-allowed hover:bg-gray-200 transition-all duration-200"
                 disabled={true}>
-                <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Send className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
               </Button>
             </motion.div>
           )}
