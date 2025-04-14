@@ -1,5 +1,7 @@
 "use client";
 
+import type React from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -33,6 +35,7 @@ export function Sidebar({ children }: SidebarProps) {
   const { rooms } = useSupport();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [isAgent, setIsAgent] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const { user } = useUser();
 
@@ -126,6 +129,7 @@ export function Sidebar({ children }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => isMobile && setOpen(false)}
               className={cn(
                 "flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                 "hover:bg-primary/10 hover:text-primary",
@@ -181,6 +185,7 @@ export function Sidebar({ children }: SidebarProps) {
           </p>
           <Link
             href={isAgent ? "/agent/help" : "/help"}
+            onClick={() => isMobile && setOpen(false)}
             className="mt-2 text-xs text-primary hover:underline inline-block">
             مشاهده راهنما
           </Link>
@@ -192,7 +197,7 @@ export function Sidebar({ children }: SidebarProps) {
   // For mobile: use Sheet component with SheetTrigger
   if (isMobile) {
     return (
-      <Sheet>
+      <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>{children}</SheetTrigger>
         <SheetContent
           side="right"
