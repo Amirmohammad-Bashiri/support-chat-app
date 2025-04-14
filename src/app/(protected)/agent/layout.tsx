@@ -2,9 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import jwt from "jsonwebtoken";
 
-import { AgentSidebar } from "@/components/agent-sidebar";
-
 import type { JWTToken } from "@/types";
+import { Sidebar } from "@/components/sidebar";
 
 export default async function AgentLayout({
   children,
@@ -29,7 +28,7 @@ export default async function AgentLayout({
 
   return (
     <div className="flex">
-      <AgentSidebar />
+      <Sidebar />
       <div className="flex-1">{children}</div>
     </div>
   );

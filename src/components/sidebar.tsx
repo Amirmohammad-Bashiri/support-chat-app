@@ -4,11 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Users,
+  MessageCircle,
   Clock,
   CheckCircle,
-  BarChart,
-  Settings,
   HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,55 +21,97 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import useUser from "@/hooks/useUser";
+import { useEffect, useState } from "react";
 
-interface AgentSidebarProps {
+interface SidebarProps {
   children?: React.ReactNode; // This will be the trigger element
 }
 
-export function AgentSidebar({ children }: AgentSidebarProps) {
+export function Sidebar({ children }: SidebarProps) {
   const pathname = usePathname();
   const { rooms } = useSupport();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const [isAgent, setIsAgent] = useState(false);
 
-  const navItems = [
-    {
-      name: "داشبورد",
-      href: "/agent/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "گفتگوهای در انتظار",
-      href: "/agent/pending-chats",
-      icon: Clock,
-    },
-    {
-      name: "گفتگوهای فعال",
-      href: "/agent/active-chats",
-      icon: CheckCircle,
-    },
-    {
-      name: "آمار و گزارشات",
-      href: "/agent/reports",
-      icon: BarChart,
-    },
-    {
-      name: "مدیریت کاربران",
-      href: "/agent/users",
-      icon: Users,
-    },
-    {
-      name: "تنظیمات",
-      href: "/agent/settings",
-      icon: Settings,
-    },
-  ];
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (user && user.role_name === "Admin") {
+      setIsAgent(true);
+    }
+  }, [user]);
+
+  // Define navigation items based on user role
+  const navItems = isAgent
+    ? [
+        {
+          name: "داشبورد",
+          href: "/agent/dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          name: "گفتگوهای در انتظار",
+          href: "/agent/pending-chats",
+          icon: Clock,
+        },
+        {
+          name: "گفتگوهای فعال",
+          href: "/agent/active-chats",
+          icon: CheckCircle,
+        },
+        // {
+        //   name: "آمار و گزارشات",
+        //   href: "/agent/reports",
+        //   icon: BarChart,
+        // },
+        // {
+        //   name: "مدیریت کاربران",
+        //   href: "/agent/users",
+        //   icon: Users,
+        // },
+        // {
+        //   name: "تنظیمات",
+        //   href: "/agent/settings",
+        //   icon: Settings,
+        // },
+      ]
+    : [
+        {
+          name: "درخواست پشتیبانی",
+          href: "/user/support",
+          icon: HelpCircle,
+        },
+        {
+          name: "اتاق های گفتگو",
+          href: "/user/chats",
+          icon: MessageCircle,
+        },
+      ];
+
+  const isActive = (path: string) => {
+    return pathname === path;
+  };
+
+  // Get title and icon based on user role
+  const getTitle = () => {
+    return isAgent ? "پنل پشتیبان" : "مرکز پشتیبانی";
+  };
+
+  const getTitleIcon = () => {
+    return isAgent ? LayoutDashboard : MessageCircle;
+  };
+
+  const TitleIcon = getTitleIcon();
 
   const SidebarContent = () => (
     <div className="py-2 flex flex-col h-full" dir="rtl">
       <div className="px-3 py-2">
         <div className="bg-primary/5 rounded-lg p-4 mb-4">
-          <h3 className="font-medium text-primary">پنل پشتیبان</h3>
-          <p className="text-xs text-muted-foreground mt-1">خوش آمدید</p>
+          <h3 className="font-medium text-primary">{getTitle()}</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isAgent ? "خوش آمدید" : "به مرکز پشتیبانی خوش آمدید"}
+          </p>
         </div>
       </div>
 
@@ -87,19 +127,23 @@ export function AgentSidebar({ children }: AgentSidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                "flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                 "hover:bg-primary/10 hover:text-primary",
                 "focus:outline-none focus:ring-2 focus:ring-primary/20",
-                pathname === item.href
-                  ? "bg-primary text-primary-foreground font-semibold"
+                isActive(item.href)
+                  ? isAgent
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : "bg-primary/15 text-primary font-semibold"
                   : "text-foreground/80"
               )}>
               <div className="flex items-center">
                 <item.icon
                   className={cn(
                     "ml-3 h-5 w-5",
-                    pathname === item.href
-                      ? "text-primary-foreground"
+                    isActive(item.href)
+                      ? isAgent
+                        ? "text-primary-foreground"
+                        : "text-primary"
                       : "text-muted-foreground"
                   )}
                 />
@@ -110,7 +154,8 @@ export function AgentSidebar({ children }: AgentSidebarProps) {
         </nav>
       </div>
 
-      {rooms.length > 0 && (
+      {/* Active chats section - only for agent */}
+      {isAgent && rooms.length > 0 && (
         <div className="mt-4 px-3 flex-1 overflow-hidden flex flex-col">
           <h3 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-3 px-2 flex items-center justify-between">
             گفتگوهای فعال
@@ -120,30 +165,6 @@ export function AgentSidebar({ children }: AgentSidebarProps) {
               {rooms.filter(room => room.agent).length}
             </Badge>
           </h3>
-
-          {/* <ScrollArea className="flex-1 pr-3 -mr-3">
-            <div className="space-y-1">
-              {rooms
-                .filter(room => room.agent)
-                .map(room => (
-                  <Link
-                    key={room.id}
-                    href={`/agent/chats/${room.id}`}
-                    className={cn(
-                      "flex items-center px-3 py-2 rounded-md text-sm transition-colors",
-                      "hover:bg-primary/10 hover:text-primary",
-                      pathname === `/agent/chats/${room.id}`
-                        ? "bg-primary/15 text-primary font-medium"
-                        : "text-foreground/80"
-                    )}>
-                    <div className="bg-primary/10 p-1.5 rounded-full ml-2">
-                      <MessageSquare className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    <span className="truncate">کاربر: {room.id}</span>
-                  </Link>
-                ))}
-            </div>
-          </ScrollArea> */}
         </div>
       )}
 
@@ -151,13 +172,15 @@ export function AgentSidebar({ children }: AgentSidebarProps) {
         <div className="bg-muted rounded-lg p-3">
           <h3 className="text-sm font-medium flex items-center gap-2">
             <HelpCircle className="h-4 w-4 text-primary" />
-            راهنمای پشتیبان
+            {isAgent ? "راهنمای پشتیبان" : "نیاز به کمک دارید؟"}
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
-            برای مشاهده راهنما کلیک کنید
+            {isAgent
+              ? "برای مشاهده راهنما کلیک کنید"
+              : "با پشتیبانی تماس بگیرید"}
           </p>
           <Link
-            href="/agent/help"
+            href={isAgent ? "/agent/help" : "/help"}
             className="mt-2 text-xs text-primary hover:underline inline-block">
             مشاهده راهنما
           </Link>
@@ -177,8 +200,8 @@ export function AgentSidebar({ children }: AgentSidebarProps) {
           style={{ direction: "rtl" }}>
           <SheetHeader className="text-right p-4 pb-0 border-b">
             <SheetTitle className="text-right flex items-center gap-2">
-              <LayoutDashboard className="h-5 w-5 text-primary" />
-              <span>پنل پشتیبان</span>
+              <TitleIcon className="h-5 w-5 text-primary" />
+              <span>{isAgent ? "پنل پشتیبان" : "پشتیبانی"}</span>
             </SheetTitle>
           </SheetHeader>
           <div className="overflow-y-auto h-[calc(100vh-4rem)]">
@@ -200,8 +223,8 @@ export function AgentSidebar({ children }: AgentSidebarProps) {
       )}>
       <div className="p-4 border-b">
         <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
-          <LayoutDashboard className="h-5 w-5" />
-          <span>پنل پشتیبان</span>
+          <TitleIcon className="h-5 w-5" />
+          <span>{isAgent ? "پنل پشتیبان" : "پشتیبانی"}</span>
         </h2>
       </div>
       <div className="flex-1 overflow-hidden">

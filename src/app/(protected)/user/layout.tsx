@@ -1,4 +1,4 @@
-import { UserSidebar } from "@/components/user-sidebar";
+import { Sidebar } from "@/components/sidebar";
 
 export default function UserLayout({
   children,
@@ -7,7 +7,7 @@ export default function UserLayout({
 }) {
   return (
     <div className="flex">
-      <UserSidebar />
+      <Sidebar />
       <div className="flex-1">{children}</div>
     </div>
   );
