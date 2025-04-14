@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Paperclip, Smile } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Send, Paperclip, Smile } from "lucide-react";
 
 import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
@@ -13,11 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import EmojiPicker, {
-  Theme,
-  EmojiStyle,
-  type EmojiClickData,
-} from "emoji-picker-react";
+import { CustomEmojiPicker } from "./custom-emoji-picker";
 
 interface ChatFooterProps {
   message: string;
@@ -34,28 +30,28 @@ export function ChatFooter({
     "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700",
 }: ChatFooterProps) {
   const [isFocused, setIsFocused] = useState(false);
-  const [textDirection, setTextDirection] = useState<"rtl" | "ltr">("rtl"); // Default to RTL for Persian
+  const [textDirection, setTextDirection] = useState<"rtl" | "ltr">("rtl");
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { isConnected } = useSocketStore();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!message.trim()) return;
     onSendMessage();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e as unknown as React.FormEvent);
     }
   };
 
-  const handleEmojiSelect = (emojiData: EmojiClickData) => {
-    onMessageChange(message + emojiData.emoji);
+  const handleEmojiSelect = (emoji: string) => {
+    onMessageChange(message + emoji);
     setEmojiPickerOpen(false);
     if (inputRef.current) {
       inputRef.current.focus();
@@ -135,17 +131,7 @@ export function ChatFooter({
               className="p-0 border-none shadow-lg w-auto"
               onInteractOutside={() => setEmojiPickerOpen(false)}>
               <div className="emoji-picker-container" dir="ltr">
-                <EmojiPicker
-                  onEmojiClick={handleEmojiSelect}
-                  theme={Theme.LIGHT}
-                  emojiStyle={EmojiStyle.NATIVE}
-                  searchPlaceHolder="Search emoji..."
-                  width={300}
-                  height={400}
-                  previewConfig={{ showPreview: false }}
-                  lazyLoadEmojis={true}
-                  skinTonesDisabled
-                />
+                <CustomEmojiPicker onEmojiSelect={handleEmojiSelect} />
               </div>
             </PopoverContent>
           </Popover>
