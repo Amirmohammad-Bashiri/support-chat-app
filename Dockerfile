@@ -1,32 +1,47 @@
+# -----------------------------------------------
+# Stage 1: Build stage
+# -----------------------------------------------
 FROM node:22-alpine AS builder
 
+# Environment configuration
+# Define build arguments for environment variables
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_API_URL_V2
+# Set environment variables for the build process
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL_V2=$NEXT_PUBLIC_API_URL_V2
+
+# Set working directory
 WORKDIR /app
 
-# Copy package management files
+# Dependencies installation
+# Copy only package files first to leverage Docker cache
 COPY package*.json yarn.lock* ./
-
-# Install dependencies
+# Install dependencies with fallback from npm to yarn
 RUN npm install --frozen-lockfile --no-progress || yarn install --frozen-lockfile --no-progress
 
-# Copy project source code
+# Application build
+# Copy all project files
 COPY . .
-
-# Build the app for production
+# Build the Next.js application
 RUN npm run build
 
-# Start a new stage from scratch
+# -----------------------------------------------
+# Stage 2: Production stage
+# -----------------------------------------------
 FROM node:22-alpine AS runner
 
+# Set working directory
 WORKDIR /app
 
-# Copy the built assets from the builder stage
+# Copy build artifacts from builder stage
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-# Make port 3000 available to the world outside this container
+# Container configuration
+# Expose the application port
 EXPOSE 3000
-
-# Define the command to run your app using CMD which defines your runtime
+# Start the Next.js application
 CMD ["npm", "run", "start"]
