@@ -5,11 +5,11 @@ FROM node:22-alpine AS builder
 
 # Environment configuration
 # Define build arguments for environment variables
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_API_URL_V2
+ARG NEXT_PUBLIC_HTTP_URL
+ARG NEXT_PUBLIC_SOCKET_URL
 # Set environment variables for the build process
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL_V2=$NEXT_PUBLIC_API_URL_V2
+ENV NEXT_PUBLIC_HTTP_URL=$NEXT_PUBLIC_HTTP_URL
+ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 
 # Set working directory
 WORKDIR /app
