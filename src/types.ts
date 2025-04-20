@@ -25,6 +25,7 @@ export interface User {
   role: number;
   modified_by: number | null;
   role_name: "Business Unit Owner" | "Admin";
+  avatar_image: string | null;
 }
 
 export interface JWTToken {

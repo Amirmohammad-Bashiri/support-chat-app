@@ -12,6 +12,10 @@ export interface Message {
   message_type: number;
   is_deleted: boolean;
   is_read: boolean;
+  sender_first_name: string;
+  sender_last_name: string;
+  persian_create_date: string;
+  persian_create_time: string;
 }
 
 export interface Room {
