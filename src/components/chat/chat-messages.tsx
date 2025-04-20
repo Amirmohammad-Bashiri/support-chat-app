@@ -5,6 +5,7 @@ import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/store/user-store";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCheck, Clock, Check, WifiOff } from "lucide-react";
+
 import type { Room, Message } from "@/store/socket-store";
 import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
@@ -161,7 +162,6 @@ export function ChatMessages({
 
       <AnimatePresence initial={false}>
         {messages.map((msg, index) => {
-          const isCurrentUser = msg.created_by === room.client;
           const isSentByCurrentUser = msg.created_by === user?.id;
           const showTimeGroup =
             index === 0 ||
@@ -184,6 +184,10 @@ export function ChatMessages({
           const showSentIndicator =
             (isSent || hasRealId) && !msg.is_read && isConnected;
           const showReadIndicator = msg.is_read && isConnected;
+
+          const currentSenderName = user
+            ? user?.first_name[0] + user?.last_name[0]
+            : "U";
 
           return (
             <motion.div
@@ -226,7 +230,7 @@ export function ChatMessages({
                     transition={{ delay: 0.1, duration: 0.2 }}
                     whileHover={{ scale: 1.1 }}
                     className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                    {isCurrentUser ? "C" : "A"}
+                    {msg.sender_first_name[0]} {msg.sender_last_name[0]}
                   </motion.div>
                 )}
 
@@ -310,7 +314,7 @@ export function ChatMessages({
                     transition={{ delay: 0.1, duration: 0.2 }}
                     whileHover={{ scale: 1.1 }}
                     className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                    {user?.id.toString().charAt(0) || "U"}
+                    {currentSenderName}
                   </motion.div>
                 )}
               </div>
