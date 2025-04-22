@@ -179,7 +179,14 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         setIsLoading(false);
       }
     },
-    [supportChatSetId, initialPage, hasMore, getPendingMessages]
+    [
+      supportChatSetId,
+      initialPage,
+      hasMore,
+      getPendingMessages,
+      messageIdsRef,
+      sentMessagesIdsRef,
+    ]
   );
 
   // Fetch messages when the page changes
@@ -245,14 +252,23 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
     socket.on("agent_message", handleServerMessage);
 
     socket.on("message_read", (data: { list_message_instance: Message[] }) => {
+      // Create a Map for efficient lookup of updated messages
+      const updatedMessagesMap = new Map<number, Message>();
+      data.list_message_instance.forEach(msg => {
+        if (typeof msg.id === "number") {
+          updatedMessagesMap.set(msg.id, msg);
+        }
+      });
+
       setMessages(prev =>
         prev.map(msg => {
-          const updatedMsg = data.list_message_instance.find(
-            updated => updated.id === msg.id
-          );
+          // Check if the current message exists in the updated messages map
+          const updatedMsg = updatedMessagesMap.get(Number(msg.id));
           if (updatedMsg) {
+            // If found, merge the updates
             return { ...msg, ...updatedMsg, isPending: false, isSent: true };
           }
+          // Otherwise, return the original message
           return msg;
         })
       );
@@ -366,36 +382,54 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         return msg;
       })
     );
-  }, [isConnected]);
+  }, [isConnected, sentMessagesIdsRef]);
 
   // Mark messages as read when visible
   useEffect(() => {
     if (!chatContainerRef.current || !socket || !user || messages.length === 0)
       return;
 
+    // Create a Map of messages by ID for quick access
+    const messagesMap = new Map<number, ExtendedMessage>();
+    messages.forEach(msg => {
+      if (typeof msg.id === "number" && msg.id > 0) {
+        messagesMap.set(msg.id, msg);
+      }
+    });
+
     const observer = new IntersectionObserver(
       entries => {
-        const unreadMessageIds: number[] = [];
+        const unreadMessageIdsToUpdate: number[] = [];
 
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const messageId = Number(entry.target.getAttribute("data-id"));
-            const message = messages.find(msg => msg.id === messageId);
+            // Use the Map for faster lookup
+            const message = messagesMap.get(messageId);
 
+            // Check if the message exists, is unread, and not sent by the current user
             if (message && !message.is_read && message.created_by !== user.id) {
-              unreadMessageIds.push(messageId);
+              unreadMessageIdsToUpdate.push(messageId);
+              // Optimistically mark as read in the map to avoid duplicate processing
+              messagesMap.set(messageId, { ...message, is_read: true });
             }
           }
         });
 
-        if (unreadMessageIds.length > 0) {
-          socket.emit("read_message", { list_of_message_id: unreadMessageIds });
+        if (unreadMessageIdsToUpdate.length > 0) {
+          // Emit the read event to the server
+          socket.emit("read_message", {
+            list_of_message_id: unreadMessageIdsToUpdate,
+          });
 
+          // Update the state more efficiently
           setMessages(prev =>
-            prev.map(msg =>
-              unreadMessageIds.includes(Number(msg.id))
-                ? { ...msg, is_read: true }
-                : msg
+            prev.map(
+              msg =>
+                // Check if the message ID is in the list of messages to update
+                unreadMessageIdsToUpdate.includes(Number(msg.id))
+                  ? { ...msg, is_read: true } // Mark as read
+                  : msg // Otherwise, keep the message as is
             )
           );
         }
@@ -403,10 +437,12 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
       { root: chatContainerRef.current, threshold: 0.1 }
     );
 
-    // Observe each message element
-    const messageElements = document.querySelectorAll("[data-id]");
+    // Observe each message element that has a data-id attribute
+    const messageElements =
+      chatContainerRef.current.querySelectorAll("[data-id]");
     messageElements.forEach(el => observer.observe(el));
 
+    // Cleanup function to disconnect the observer when the component unmounts or dependencies change
     return () => observer.disconnect();
   }, [messages, socket, user]);
 

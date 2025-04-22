@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useMemo } from "react"; // Import useMemo
 import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/store/user-store";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCheck, Clock, Check, WifiOff } from "lucide-react";
 
-import type { Room, Message } from "@/store/socket-store";
+import type { Message } from "@/store/socket-store"; // Removed Room import
 import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
-import { useMessageQueue } from "@/hooks/use-message-queue";
 
 interface ChatMessagesProps {
   messages: Message[];
-  room: Room;
   loadMore: () => void;
   hasMore: boolean;
   isLoading: boolean;
@@ -23,11 +21,11 @@ interface ChatMessagesProps {
 interface ExtendedMessage extends Message {
   isPending?: boolean;
   isSent?: boolean;
+  clientId?: string; // Added clientId for pending messages
 }
 
 export function ChatMessages({
   messages,
-  room,
   loadMore,
   hasMore,
   isLoading,
@@ -35,8 +33,11 @@ export function ChatMessages({
   const { user } = useUserStore();
   const { isConnected } = useSocketStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [queueCount, setQueueCount] = useState(0);
-  const { getQueueCount } = useMessageQueue();
+
+  // Calculate pending messages count directly from the messages prop
+  const pendingMessagesCount = useMemo(() => {
+    return messages.filter(msg => (msg as ExtendedMessage).isPending).length;
+  }, [messages]);
 
   // Observe the top of the chat for loading more messages
   const { ref, inView } = useInView({
@@ -51,23 +52,6 @@ export function ChatMessages({
       loadMore();
     }
   }, [inView, hasMore, isLoading, loadMore, isConnected]);
-
-  // Update queue count when connection status changes
-  useEffect(() => {
-    const updateQueueCount = async () => {
-      if (room?.id) {
-        const count = await getQueueCount(room.id);
-        setQueueCount(count);
-      }
-    };
-
-    updateQueueCount();
-
-    // Update queue count periodically
-    const interval = setInterval(updateQueueCount, 5000);
-
-    return () => clearInterval(interval);
-  }, [room?.id, getQueueCount, isConnected]);
 
   // Animation variants for messages
   const messageVariants = {
@@ -138,11 +122,13 @@ export function ChatMessages({
                 <p className="text-amber-700 text-xs mt-1 hidden sm:block">
                   پیام‌های شما در دستگاه شما ذخیره می‌شوند و به محض اتصال مجدد
                   به اینترنت به صورت خودکار ارسال خواهند شد.
-                  {queueCount > 0 && ` (${queueCount} پیام در صف ارسال)`}
+                  {pendingMessagesCount > 0 &&
+                    ` (${pendingMessagesCount} پیام در صف ارسال)`}
                 </p>
                 <p className="text-amber-700 text-xs mt-1 sm:hidden">
                   پیام‌ها پس از اتصال مجدد ارسال می‌شوند.
-                  {queueCount > 0 && ` (${queueCount} پیام در صف)`}
+                  {pendingMessagesCount > 0 &&
+                    ` (${pendingMessagesCount} پیام در صف)`}
                 </p>
               </div>
             </div>
@@ -162,6 +148,7 @@ export function ChatMessages({
 
       <AnimatePresence initial={false}>
         {messages.map((msg, index) => {
+          const extMsg = msg as ExtendedMessage;
           const isSentByCurrentUser = msg.created_by === user?.id;
           const showTimeGroup =
             index === 0 ||
@@ -172,7 +159,6 @@ export function ChatMessages({
           const textDirection = detectTextDirection(msg.text);
 
           // Check message status
-          const extMsg = msg as ExtendedMessage;
           const isPending = extMsg.isPending;
           const isSent = extMsg.isSent;
 
@@ -191,7 +177,8 @@ export function ChatMessages({
 
           return (
             <motion.div
-              key={msg.id || msg.created_by}
+              // Use clientId for pending messages, otherwise use message id
+              key={extMsg.clientId || msg.id || `msg-${index}`}
               custom={isSentByCurrentUser}
               variants={messageVariants}
               initial="initial"
@@ -219,7 +206,7 @@ export function ChatMessages({
               )}
 
               <div
-                data-id={msg.id}
+                data-id={msg.id} // Keep data-id for intersection observer
                 className={`flex ${
                   isSentByCurrentUser ? "justify-end" : "justify-start"
                 } items-end gap-1 sm:gap-2`}>
