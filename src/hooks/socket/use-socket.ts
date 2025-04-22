@@ -36,9 +36,11 @@ export const useSupport = () => {
   );
 
   const joinRoom = useCallback(
-    (roomId: number) => {
+    async (roomId: number) => {
       if (socket && isConnected && isAgent) {
-        socket.emit("agent_join_support_chat", { support_chat_set_id: roomId });
+        await socket.emitWithAck("agent_join_support_chat", {
+          support_chat_set_id: roomId,
+        });
         setCurrentRoom(roomId);
       }
     },

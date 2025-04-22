@@ -14,8 +14,8 @@ export interface Message {
   is_read: boolean;
   sender_first_name: string;
   sender_last_name: string;
-  persian_create_date: string;
-  persian_create_time: string;
+  persian_create_date?: string;
+  persian_create_time?: string;
 }
 
 export interface Room {

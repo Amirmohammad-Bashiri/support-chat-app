@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-// import { useRouter } from "next/navigation";
 import { useSupport } from "@/hooks/socket/use-socket";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,30 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function SupportPage() {
-  const { requestSupport, currentRoom } = useSupport();
+  const { requestSupport } = useSupport();
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   // const router = useRouter();
 
   const handleRequestSupport = () => {
     if (subject && description) {
-      console.log("Requesting support chat...");
       requestSupport(subject, description);
     }
   };
-
-  // useEffect(() => {
-  //   const cleanup = listenToUserCreatedRoom(); // Start listening to the event
-  //   return cleanup; // Cleanup listener on unmount
-  // }, [listenToUserCreatedRoom]);
-
-  console.log(currentRoom);
-
-  // useEffect(() => {
-  //   if (currentRoom) {
-  //     router.push(`/user/chat/${currentRoom}`);
-  //   }
-  // }, [currentRoom, router]);
 
   return (
     <div className="max-w-md mx-auto" dir="rtl">

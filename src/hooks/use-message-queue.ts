@@ -79,6 +79,8 @@ export function useMessageQueue() {
         is_read: false,
         isPending: true,
         isSent: false,
+        sender_first_name: user.first_name,
+        sender_last_name: user.last_name,
         clientId,
       };
 

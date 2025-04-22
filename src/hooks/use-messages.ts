@@ -63,6 +63,8 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
           is_read: false,
           isPending: true,
           isSent: false,
+          sender_first_name: user.first_name,
+          sender_last_name: user.last_name,
           clientId, // Using clientId here to track the pending message
         };
 
