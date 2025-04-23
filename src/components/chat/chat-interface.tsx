@@ -91,7 +91,7 @@ export function ChatInterface({
       scrollToBottom();
       setInitialRender(false);
     }
-  }, [messages.length, initialRender]);
+  }, [messages.length, initialRender, scrollToBottom]);
 
   useEffect(() => {
     const callback = () => {
@@ -221,7 +221,6 @@ export function ChatInterface({
 
         <ChatMessages
           messages={messages}
-          room={room}
           loadMore={loadMore}
           hasMore={hasMore}
           isLoading={isLoading}

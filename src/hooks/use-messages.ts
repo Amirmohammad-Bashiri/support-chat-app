@@ -199,8 +199,6 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         return;
       }
 
-      console.log("Received new message:", newMessage);
-
       // Mark the message as sent
       if (typeof newMessage.id === "number" && newMessage.id > 0) {
         markMessageAsSent(newMessage.id);
