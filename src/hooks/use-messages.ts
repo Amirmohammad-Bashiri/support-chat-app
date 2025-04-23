@@ -140,7 +140,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
           return {
             ...msg,
             isPending: false,
-            isSent: true,
+            isSent: msg.is_sent === true, // Use API is_sent
           } as ExtendedMessage;
         });
 
@@ -223,7 +223,11 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
       // Add new message at the end with sent status
       setMessages(prev => [
         ...prev,
-        { ...newMessage, isPending: false, isSent: true },
+        {
+          ...newMessage,
+          isPending: false,
+          isSent: newMessage.is_sent === true,
+        },
       ]);
     },
     [supportChatSetId, messageExists, markMessageAsSent]
@@ -266,7 +270,12 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
           const updatedMsg = updatedMessagesMap.get(Number(msg.id));
           if (updatedMsg) {
             // If found, merge the updates
-            return { ...msg, ...updatedMsg, isPending: false, isSent: true };
+            return {
+              ...msg,
+              ...updatedMsg,
+              isPending: false,
+              isSent: updatedMsg.is_sent === true,
+            };
           }
           // Otherwise, return the original message
           return msg;
@@ -330,7 +339,7 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         const processedData = newMessages.map(msg => ({
           ...msg,
           isPending: false,
-          isSent: true,
+          isSent: msg.is_sent === true,
         })) as ExtendedMessage[];
 
         // Only add new messages if we have any
@@ -366,6 +375,15 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
         const hasBeenSent =
           (typeof msg.id === "number" && msg.id > 0) ||
           sentMessagesIdsRef.current.has(Number(msg.id));
+
+        // Use API is_sent if available
+        if (Object.prototype.hasOwnProperty.call(msg, "is_sent")) {
+          return {
+            ...msg,
+            isPending: false,
+            isSent: (msg as Message).is_sent === true,
+          };
+        }
 
         if (hasBeenSent) {
           // Message has been sent to the server, so it's not pending

@@ -160,7 +160,9 @@ export function ChatMessages({
 
           // Check message status
           const isPending = extMsg.isPending;
-          const isSent = extMsg.isSent;
+          // Use isSent from API or mapped by hook
+          const isSent =
+            typeof extMsg.isSent === "boolean" ? extMsg.isSent : false;
 
           // A message with a real ID (positive number) has been sent to the server
           const hasRealId = typeof msg.id === "number" && msg.id > 0;

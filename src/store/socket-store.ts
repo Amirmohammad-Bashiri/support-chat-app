@@ -16,6 +16,7 @@ export interface Message {
   sender_last_name: string;
   persian_create_date?: string;
   persian_create_time?: string;
+  is_sent?: boolean; // Added for API compatibility
 }
 
 export interface Room {
