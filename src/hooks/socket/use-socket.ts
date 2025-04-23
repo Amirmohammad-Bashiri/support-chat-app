@@ -26,14 +26,27 @@ export const useSupport = () => {
   } = useSocketStore();
   const { user } = useUserStore();
 
-  const requestSupport = useCallback(
-    (subject: string, description: string) => {
-      if (socket && isConnected && !isAgent) {
-        socket.emit("request_support_chat", { subject, description });
+  const requestSupport = async (subject: string, description: string) => {
+    if (socket && isConnected && !isAgent) {
+      try {
+        const response = await socket.emitWithAck("request_support_chat", {
+          subject,
+          description,
+        });
+        console.log("Support request response:", response);
+        if (response.success) {
+          console.log("Support request was successful.");
+        } else {
+          console.log("Support request failed:", response);
+        }
+        return response;
+      } catch (error) {
+        console.error("Error requesting support:", error);
+        return { success: false, error };
       }
-    },
-    [socket, isConnected, isAgent]
-  );
+    }
+    return { success: false, error: "Not connected or not a user" };
+  };
 
   const joinRoom = useCallback(
     async (roomId: number) => {

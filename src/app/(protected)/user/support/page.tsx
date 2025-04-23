@@ -6,18 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function SupportPage() {
   const { requestSupport } = useSupport();
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
-  // const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [response, setResponse] = useState<{ success: boolean } | null>(null);
 
-  const handleRequestSupport = () => {
+  const handleRequestSupport = async () => {
     if (subject && description) {
-      requestSupport(subject, description);
+      setIsLoading(true);
+      const res = await requestSupport(subject, description);
+      setResponse(res);
+      setIsLoading(false);
     }
   };
+
+  console.log("isLoading--------------------->", isLoading);
 
   return (
     <div className="max-w-md mx-auto" dir="rtl">
@@ -34,27 +41,31 @@ export default function SupportPage() {
             value={subject}
             onChange={e => setSubject(e.target.value)}
             className="mb-4"
+            disabled={isLoading}
           />
           <Textarea
             placeholder="توضیحات"
             value={description}
             onChange={e => setDescription(e.target.value)}
             className="mb-4"
+            disabled={isLoading}
           />
           <Button
             onClick={handleRequestSupport}
-            disabled={!subject || !description}
+            disabled={!subject || !description || isLoading}
             className="w-full">
-            درخواست پشتیبانی
-            {/* {currentRoom ? "درخواست پشتیبانی ارسال شد" : "درخواست پشتیبانی"} */}
+            {isLoading ? <Spinner /> : "درخواست پشتیبانی"}
           </Button>
-
-          {/* {currentRoom && (
-            <p className="mt-4 text-sm text-green-600 text-right">
-              درخواست پشتیبانی شما ارسال شده است. به محض اتصال پشتیبان، به صفحه
-              گفتگو هدایت خواهید شد.
+          {response && (
+            <p
+              className={`mt-4 text-sm text-right ${
+                response.success ? "text-green-600" : "text-red-600"
+              }`}>
+              {response.success
+                ? "درخواست پشتیبانی شما با موفقیت ارسال شد."
+                : "ارسال درخواست پشتیبانی با مشکل مواجه شد."}
             </p>
-          )} */}
+          )}
         </CardContent>
       </Card>
     </div>
