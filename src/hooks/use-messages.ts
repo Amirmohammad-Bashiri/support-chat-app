@@ -25,7 +25,6 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
   const [error, setError] = useState<Error | null>(null);
   const messageCallbackRef = useRef<(() => void) | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
-  const initialLoadCompleteRef = useRef(false);
 
   const { socket, isConnected } = useSocketStore();
   const { user } = useUserStore();
@@ -43,6 +42,11 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
     sentMessagesIdsRef,
     messageIdsRef,
   } = useMessageQueue();
+
+  // Use a Map to store messages by id (number) or clientId (string) for efficient lookup
+  const messagesMapRef = useRef<Map<string | number, ExtendedMessage>>(
+    new Map()
+  );
 
   // Wrapper function for addPendingMessage that adapts to our hook's interface
   const addPendingMessage = useCallback(
@@ -104,76 +108,61 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
   // Fetch messages manually
   const fetchMessages = useCallback(
     async (pageToFetch: number) => {
-      if (!hasMore && pageToFetch !== initialPage) return; // Prevent unnecessary fetch, but always allow initial page fetch
-
+      if (!hasMore && pageToFetch !== initialPage) return;
       setIsLoading(true);
       setError(null);
-
       const container = chatContainerRef.current;
       const previousScrollHeight = container?.scrollHeight || 0;
       const previousScrollTop = container?.scrollTop || 0;
-
       try {
-        console.log(`Fetching messages for page ${pageToFetch}`);
         const response = await axiosInstance.get<MessagesResponse>(
           `/v1/support_chat/messages?support_chat_set_id=${supportChatSetId}&page=${pageToFetch}`
         );
-
         const { results, next } = response.data;
-
         if (!results || !Array.isArray(results)) {
-          setHasMore(false); // No more pages, stop fetching
+          setHasMore(false);
           return;
         }
-
-        console.log(`Received ${results.length} messages from server`);
-
-        // Process all messages, don't filter out existing ones on initial load
-        // This ensures we don't lose messages that were sent while offline
-        const processedResults = results.map(msg => {
-          // Add the message ID to our tracking set
-          if (typeof msg.id === "number" && msg.id > 0) {
+        // Only add new messages to the map and sent IDs set
+        results.forEach(msg => {
+          if (
+            typeof msg.id === "number" &&
+            msg.id > 0 &&
+            !messagesMapRef.current.has(msg.id)
+          ) {
+            const extMsg: ExtendedMessage = {
+              ...msg,
+              isPending: false,
+              isSent: msg.is_sent === true,
+            };
+            messagesMapRef.current.set(msg.id, extMsg);
             messageIdsRef.current.add(msg.id);
             sentMessagesIdsRef.current.add(msg.id);
           }
-
-          return {
-            ...msg,
-            isPending: false,
-            isSent: msg.is_sent === true, // Use API is_sent
-          } as ExtendedMessage;
         });
-
+        // For initial load, add pending messages
         if (pageToFetch === initialPage) {
-          // On initial page load, replace all non-pending messages
-          // but keep pending messages that haven't been sent yet
           const pendingMsgs = getPendingMessages().filter(
             msg => msg.support_chat_set === supportChatSetId
           );
-
-          console.log(
-            `Setting ${processedResults.length} server messages and ${pendingMsgs.length} pending messages`
-          );
-
-          setMessages([...processedResults, ...pendingMsgs]);
-          initialLoadCompleteRef.current = true;
-        } else {
-          // For pagination, prepend new messages to existing ones
-          setMessages(prev => {
-            return [...processedResults, ...prev];
+          pendingMsgs.forEach(pendingMsg => {
+            // Use clientId (string) for pending messages
+            if (
+              pendingMsg.clientId &&
+              !messagesMapRef.current.has(pendingMsg.clientId)
+            ) {
+              messagesMapRef.current.set(pendingMsg.clientId, pendingMsg);
+            }
           });
         }
-
-        setHasMore(next !== null); // Ensure we stop when there's no next page
-
-        // Restore scroll position after loading messages
+        setMessages(Array.from(messagesMapRef.current.values()));
+        setHasMore(next !== null);
         if (container) {
           const newScrollHeight = container.scrollHeight;
           container.scrollTop =
             newScrollHeight - previousScrollHeight + previousScrollTop;
         }
       } catch (err) {
-        console.error("Failed to fetch messages:", err);
         setError(err as Error);
       } finally {
         setIsLoading(false);
