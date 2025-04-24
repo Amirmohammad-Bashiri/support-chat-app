@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useMemo } from "react";
+import Image from "next/image";
 import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/store/user-store";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,7 +11,6 @@ import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
 
 import type { Message } from "@/store/socket-store";
-import Image from "next/image";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -177,10 +177,8 @@ export function ChatMessages({
 
           console.log("message", msg);
 
-          const currentSenderName = user
-            ? user?.first_name[0] + user?.last_name[0]
-            : "U";
-          const currentSenderAvatar = user && user.avatar_image;
+          const senderName = `${msg.sender_first_name[0]} ${msg.sender_last_name[0]}`;
+          const senderAvatar = msg.sender_avatar_image;
 
           return (
             <motion.div
@@ -223,8 +221,17 @@ export function ChatMessages({
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.2 }}
                     whileHover={{ scale: 1.1 }}
-                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                    {msg.sender_first_name[0]} {msg.sender_last_name[0]}
+                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold relative">
+                    {msg.sender_avatar_image ? (
+                      <Image
+                        src={msg.sender_avatar_image}
+                        alt="User Avatar"
+                        fill
+                        className="object-cover rounded-full"
+                      />
+                    ) : (
+                      senderName
+                    )}
                   </motion.div>
                 )}
 
@@ -308,16 +315,16 @@ export function ChatMessages({
                     transition={{ delay: 0.1, duration: 0.2 }}
                     whileHover={{ scale: 1.1 }}
                     className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                    {currentSenderAvatar ? (
+                    {senderAvatar ? (
                       <Image
-                        src={currentSenderAvatar}
+                        src={senderAvatar}
                         alt="User Avatar"
                         width={50}
                         height={50}
                         className="object-cover rounded-full"
                       />
                     ) : (
-                      currentSenderName
+                      senderName
                     )}
                   </motion.div>
                 )}
