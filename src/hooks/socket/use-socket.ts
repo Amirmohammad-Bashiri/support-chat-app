@@ -36,6 +36,8 @@ export const useSupport = () => {
         console.log("Support request response:", response);
         if (response.success) {
           console.log("Support request was successful.");
+          setCurrentRoom(response.id);
+          router.push(`/user/chat/${response.id}`);
         } else {
           console.log("Support request failed:", response);
         }

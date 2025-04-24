@@ -57,7 +57,7 @@ export default function SupportPage() {
           {response && (
             <p
               className={`mt-4 text-sm text-right ${
-                response.success ? "text-green-600" : "text-red-600"
+                response.success ? "text-green-600" : "text-rose-600"
               }`}>
               {response.success
                 ? "درخواست پشتیبانی شما با موفقیت ارسال شد."
