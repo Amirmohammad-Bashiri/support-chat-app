@@ -175,8 +175,6 @@ export function ChatMessages({
             (isSent || hasRealId) && !msg.is_read && isConnected;
           const showReadIndicator = msg.is_read && isConnected;
 
-          console.log("message", msg);
-
           const senderName = `${msg.sender_first_name[0]} ${msg.sender_last_name[0]}`;
           const senderAvatar = msg.sender_avatar_image;
 

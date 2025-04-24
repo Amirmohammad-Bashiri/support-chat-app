@@ -155,7 +155,12 @@ export function useMessages(supportChatSetId: number, initialPage = 1) {
             }
           });
         }
-        setMessages(Array.from(messagesMapRef.current.values()));
+        // Always sort messages by created_at before setting state
+        const sortedMessages = Array.from(messagesMapRef.current.values()).sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        setMessages(sortedMessages);
         setHasMore(next !== null);
         if (container) {
           const newScrollHeight = container.scrollHeight;
