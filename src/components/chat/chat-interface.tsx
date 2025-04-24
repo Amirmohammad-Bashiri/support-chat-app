@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { ArrowDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,9 +30,8 @@ export function ChatInterface({
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
   const [initialRender, setInitialRender] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const { sendMessage, endConversation } = useSupport();
+  const { sendMessage, endConversation, emitTyping, listenTyping } =
+    useSupport();
   const { isConnected } = useSocketStore();
   const { queueMessage, processQueue } = useMessageQueue();
 
@@ -54,18 +53,6 @@ export function ChatInterface({
     threshold: 0.5,
     rootMargin: "0px 0px 10px 0px",
   });
-
-  // Simulate typing indicator (in a real app, this would come from the server)
-  const simulateTyping = () => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    setIsTyping(true);
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-    }, 3000);
-  };
 
   // Update isAtBottom state when bottom visibility changes
   useEffect(() => {
@@ -93,21 +80,17 @@ export function ChatInterface({
     }
   }, [messages.length, initialRender, scrollToBottom]);
 
+  // Remove simulateTyping from onNewMessage callback
   useEffect(() => {
+    if (!onNewMessage) return;
     const callback = () => {
+      setIsTyping(false);
       if (!isBottomVisible) {
-        setShowNewMessageButton(true); // Show the button when new messages arrive
+        setShowNewMessageButton(true);
       }
-      simulateTyping(); // Simulate typing when new message arrives
     };
-
     onNewMessage(callback);
-    return () => {
-      onNewMessage(null);
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
+    return () => onNewMessage(null);
   }, [onNewMessage, isBottomVisible]);
 
   // Auto-scroll to bottom when new messages arrive if user was already at bottom
@@ -182,6 +165,24 @@ export function ChatInterface({
     }
   }, [isConnected, processQueue]);
 
+  // Listen for typing events from other users in this chat
+  useEffect(() => {
+    if (!room?.id || !listenTyping) return;
+    let typingTimeout: NodeJS.Timeout | null = null;
+    const cleanup = listenTyping(Number(room.id), () => {
+      setIsTyping(true);
+      if (typingTimeout) clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        setIsTyping(false);
+      }, 800); // faster timeout for snappier feel
+    });
+    return () => {
+      if (cleanup) cleanup();
+      if (typingTimeout) clearTimeout(typingTimeout);
+      setIsTyping(false);
+    };
+  }, [room?.id, listenTyping]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -245,7 +246,7 @@ export function ChatInterface({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="flex items-center gap-1 sm:gap-2 mr-6 sm:mr-10 mt-2">
+              className="flex items-center gap-1 sm:gap-2 ml-6 sm:ml-10 mt-2 justify-start">
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
@@ -327,9 +328,13 @@ export function ChatInterface({
       </div>
       <ChatFooter
         message={message}
-        onMessageChange={setMessage}
+        onMessageChange={value => {
+          setMessage(value);
+          if (emitTyping) emitTyping(Number(room.id));
+        }}
         onSendMessage={handleSendMessage}
         getSendButtonClass={getSendButtonClass}
+        roomId={Number(room.id)}
       />
 
       {/* Show connection status indicator */}

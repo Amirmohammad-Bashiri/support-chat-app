@@ -8,6 +8,7 @@ import { Send, Paperclip, Smile } from "lucide-react";
 
 import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
+import { useSupport } from "@/hooks/socket/use-socket";
 import {
   Popover,
   PopoverContent,
@@ -20,6 +21,7 @@ interface ChatFooterProps {
   onMessageChange: (value: string) => void;
   onSendMessage: () => void;
   getSendButtonClass?: () => string;
+  roomId: number;
 }
 
 export function ChatFooter({
@@ -28,6 +30,7 @@ export function ChatFooter({
   onSendMessage,
   getSendButtonClass = () =>
     "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700",
+  roomId,
 }: ChatFooterProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [textDirection, setTextDirection] = useState<"rtl" | "ltr">("rtl");
@@ -35,6 +38,7 @@ export function ChatFooter({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { isConnected } = useSocketStore();
+  const { emitTyping } = useSupport();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +60,11 @@ export function ChatFooter({
     if (inputRef.current) {
       inputRef.current.focus();
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onMessageChange(e.target.value);
+    if (emitTyping) emitTyping(roomId);
   };
 
   // Update text direction when message changes
@@ -100,7 +109,7 @@ export function ChatFooter({
           <Input
             ref={inputRef}
             value={message}
-            onChange={e => onMessageChange(e.target.value)}
+            onChange={handleInputChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             onKeyDown={handleKeyDown}

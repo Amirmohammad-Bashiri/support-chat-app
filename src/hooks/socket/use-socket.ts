@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import { useSocketStore, Message, Room } from "@/store/socket-store";
@@ -33,13 +33,11 @@ export const useSupport = () => {
           subject,
           description,
         });
-        console.log("Support request response:", response);
         if (response.success) {
-          console.log("Support request was successful.");
           setCurrentRoom(response.id);
           router.push(`/user/chat/${response.id}`);
         } else {
-          console.log("Support request failed:", response);
+          console.error("Support request failed:", response);
         }
         return response;
       } catch (error) {
@@ -172,6 +170,52 @@ export const useSupport = () => {
     router,
   ]);
 
+  // Debounced typing emitter
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastEmitTime = useRef<number>(0);
+
+  // Emit typing event, debounced (300ms min interval)
+  const emitTyping = useCallback(
+    (support_chat_set_id: number) => {
+      if (!socket || !isConnected || !support_chat_set_id) return;
+      const now = Date.now();
+      if (now - lastEmitTime.current > 300) {
+        socket.emit("typing_message", { support_chat_set_id });
+        lastEmitTime.current = now;
+      } else {
+        if (typingTimeout.current) clearTimeout(typingTimeout.current);
+        typingTimeout.current = setTimeout(() => {
+          socket.emit("typing_message", { support_chat_set_id });
+          lastEmitTime.current = Date.now();
+        }, 300 - (now - lastEmitTime.current));
+      }
+    },
+    [socket, isConnected]
+  );
+
+  // Listen for typing events in a room
+  const listenTyping = useCallback(
+    (support_chat_set_id: number, cb: (user_id: number) => void) => {
+      if (!socket) return;
+      const handler = (data: {
+        support_chat_set_id: number;
+        user_id: number;
+      }) => {
+        if (
+          data.support_chat_set_id === support_chat_set_id &&
+          data.user_id !== user?.id
+        ) {
+          cb(data.user_id);
+        }
+      };
+      socket.on("message_typing", handler);
+      return () => {
+        socket.off("message_typing", handler);
+      };
+    },
+    [socket, user?.id]
+  );
+
   useEffect(() => {
     if (socket) {
       // Listen for user_message event
@@ -225,5 +269,7 @@ export const useSupport = () => {
     sendMessage,
     endConversation,
     listenToUserCreatedRoom,
+    emitTyping, // added
+    listenTyping, // added
   };
 };
