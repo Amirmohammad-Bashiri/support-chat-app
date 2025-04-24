@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { MessageSquare, AlertCircle, Loader2 } from "lucide-react";
+
 import { useOpenedChatRooms } from "@/hooks/use-opened-chat-rooms";
 import { useSocketConnection } from "@/hooks/socket/use-socket";
 import {
@@ -11,7 +13,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function UserChatsPage() {
@@ -63,7 +64,7 @@ export default function UserChatsPage() {
           <CardTitle>گفتگوهای پشتیبانی شما</CardTitle>
           <CardDescription>
             {!isConnected && (
-              <span className="text-red-500 font-medium">
+              <span className="text-rose-500 font-medium">
                 اتصال قطع شده است. برخی از قابلیت‌ها ممکن است محدود باشند.
               </span>
             )}
@@ -92,7 +93,7 @@ export default function UserChatsPage() {
                   key={room.id}
                   className="flex items-center justify-between p-4 bg-gray-100 rounded-lg  transition-colors">
                   <div>
-                    <h3 className="font-medium">{room.name}</h3>
+                    <h3 className="font-medium">{room.subject}</h3>
                     <p className="text-sm text-gray-500">
                       {room.agent
                         ? "پشتیبان اختصاص داده شده"

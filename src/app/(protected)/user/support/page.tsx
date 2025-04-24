@@ -24,8 +24,6 @@ export default function SupportPage() {
     }
   };
 
-  console.log("isLoading--------------------->", isLoading);
-
   return (
     <div className="max-w-md mx-auto" dir="rtl">
       <Card>
