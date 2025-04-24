@@ -12,15 +12,15 @@ import type { Room } from "@/store/socket-store";
 
 export default function ChatRoomPage() {
   const params = useParams();
-  const roomId = parseInt(params.roomId as string, 10); // Parse roomId as a number
+  const roomId = parseInt(params.roomId as string, 10);
   const { rooms, currentRoom, setCurrentRoom } = useSupport();
   const [room, setRoom] = useState<Room | null>(null);
   const router = useRouter();
 
-  const { openedChatRooms, isLoading } = useOpenedChatRooms();
+  const { openedChatRooms, isLoading: isLoadingRooms } = useOpenedChatRooms();
 
   useEffect(() => {
-    if (openedChatRooms.length === 0) {
+    if (openedChatRooms.length === 0 && isLoadingRooms) {
       return; // Wait until rooms are populated
     }
 
@@ -35,13 +35,20 @@ export default function ChatRoomPage() {
     if (roomId && roomId !== currentRoom) {
       setCurrentRoom(roomId);
     }
-  }, [roomId, openedChatRooms, currentRoom, setCurrentRoom, router]);
+  }, [
+    roomId,
+    openedChatRooms,
+    currentRoom,
+    setCurrentRoom,
+    router,
+    isLoadingRooms,
+  ]);
 
   if (!room || rooms.length === 0) {
     return null; // Render nothing while waiting for rooms to populate
   }
 
-  if (!room && isLoading) {
+  if (!room && isLoadingRooms) {
     return <Spinner />;
   }
 

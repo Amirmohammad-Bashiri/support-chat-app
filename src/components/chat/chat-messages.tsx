@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react"; // Import useMemo
+import { useEffect, useRef, useMemo } from "react";
 import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/store/user-store";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCheck, Clock, Check, WifiOff } from "lucide-react";
 
-import type { Message } from "@/store/socket-store"; // Removed Room import
 import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
+
+import type { Message } from "@/store/socket-store";
 
 interface ChatMessagesProps {
   messages: Message[];
