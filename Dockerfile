@@ -24,10 +24,10 @@ WORKDIR /app
 
 # Copy the built assets from the builder stage
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-
 # Make port 3000 available to the world outside this container
 EXPOSE 3000
 
