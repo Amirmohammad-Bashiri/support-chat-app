@@ -78,7 +78,7 @@ export function ChatInterface({
       scrollToBottom();
       setInitialRender(false);
     }
-  }, [messages.length, initialRender, scrollToBottom]);
+  }, [messages.length, initialRender]);
 
   // Remove simulateTyping from onNewMessage callback
   useEffect(() => {
@@ -246,40 +246,16 @@ export function ChatInterface({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="flex items-center gap-1 sm:gap-2 ml-6 sm:ml-10 mt-2 justify-start">
-              <motion.div
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-xs">
-                {isAgent ? "A" : "C"}
-              </motion.div>
-              <div className="bg-white p-2 sm:p-3 rounded-2xl rounded-bl-none shadow-sm border border-gray-100">
-                <div className="flex space-x-1 rtl:space-x-reverse">
-                  <motion.div
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{
-                      duration: 0.6,
-                      repeat: Number.POSITIVE_INFINITY,
-                      delay: 0,
-                    }}
-                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-300"></motion.div>
-                  <motion.div
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{
-                      duration: 0.6,
-                      repeat: Number.POSITIVE_INFINITY,
-                      delay: 0.15,
-                    }}
-                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-300"></motion.div>
-                  <motion.div
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{
-                      duration: 0.6,
-                      repeat: Number.POSITIVE_INFINITY,
-                      delay: 0.3,
-                    }}
-                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-300"></motion.div>
-                </div>
+              className={`flex items-center gap-1 sm:gap-2 mt-2 ${
+                isAgent
+                  ? "ml-6 sm:ml-10 justify-start"
+                  : "mr-6 sm:mr-10 justify-end"
+              }`}>
+              <div
+                className={`bg-white p-2 sm:p-3 rounded-2xl ${
+                  isAgent ? "rounded-bl-none" : "rounded-br-none"
+                } shadow-sm border border-gray-100`}>
+                <TypingIndicator />
               </div>
             </motion.div>
           )}
@@ -340,5 +316,36 @@ export function ChatInterface({
       {/* Show connection status indicator */}
       <ConnectionStatus roomId={room.id} />
     </motion.div>
+  );
+}
+
+// New modern typing indicator component
+function TypingIndicator() {
+  return (
+    <div className="flex items-center justify-center">
+      <div className="flex space-x-2 rtl:space-x-reverse">
+        {[0, 1, 2, 3, 4].map(i => (
+          <motion.div
+            key={i}
+            initial={{ scale: 0.8 }}
+            animate={{
+              scale: [0.8, 1.2, 0.8],
+              backgroundColor: [
+                "rgb(216, 180, 254)", // Light purple
+                "rgb(139, 92, 246)", // Medium purple
+                "rgb(216, 180, 254)", // Back to light purple
+              ],
+            }}
+            transition={{
+              duration: 1.2,
+              repeat: Number.POSITIVE_INFINITY,
+              delay: i * 0.1,
+              ease: "easeInOut",
+            }}
+            className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-300"
+          />
+        ))}
+      </div>
+    </div>
   );
 }
