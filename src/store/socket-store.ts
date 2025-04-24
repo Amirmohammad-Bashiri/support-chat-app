@@ -14,6 +14,7 @@ export interface Message {
   is_read: boolean;
   sender_first_name: string;
   sender_last_name: string;
+  sender_avatar_image?: string;
   persian_create_date?: string;
   persian_create_time?: string;
   is_sent?: boolean; // Added for API compatibility

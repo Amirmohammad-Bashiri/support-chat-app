@@ -10,6 +10,7 @@ import { detectTextDirection } from "@/lib/text-direction";
 import { useSocketStore } from "@/store/socket-store";
 
 import type { Message } from "@/store/socket-store";
+import Image from "next/image";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -174,9 +175,12 @@ export function ChatMessages({
             (isSent || hasRealId) && !msg.is_read && isConnected;
           const showReadIndicator = msg.is_read && isConnected;
 
+          console.log("message", msg);
+
           const currentSenderName = user
             ? user?.first_name[0] + user?.last_name[0]
             : "U";
+          const currentSenderAvatar = user && user.avatar_image;
 
           return (
             <motion.div
@@ -304,7 +308,17 @@ export function ChatMessages({
                     transition={{ delay: 0.1, duration: 0.2 }}
                     whileHover={{ scale: 1.1 }}
                     className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                    {currentSenderName}
+                    {currentSenderAvatar ? (
+                      <Image
+                        src={currentSenderAvatar}
+                        alt="User Avatar"
+                        width={50}
+                        height={50}
+                        className="object-cover rounded-full"
+                      />
+                    ) : (
+                      currentSenderName
+                    )}
                   </motion.div>
                 )}
               </div>
