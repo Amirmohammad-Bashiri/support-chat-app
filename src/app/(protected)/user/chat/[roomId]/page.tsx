@@ -9,6 +9,7 @@ import { useOpenedChatRooms } from "@/hooks/use-opened-chat-rooms";
 import { Spinner } from "@/components/ui/spinner";
 
 import { type Room } from "@/store/socket-store";
+import { RoomNotFound } from "@/components/chat/room-not-found";
 
 export default function ChatRoomPage() {
   const params = useParams();
@@ -53,7 +54,7 @@ export default function ChatRoomPage() {
   }
 
   if (!room) {
-    return <p>اتاق یافت نشد</p>;
+    return <RoomNotFound backUrl="/user/chats" homeUrl="/user/support" />;
   }
 
   return (
