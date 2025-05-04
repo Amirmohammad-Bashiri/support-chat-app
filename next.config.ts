@@ -7,24 +7,16 @@ const withPWA = withPWAInit({
   dynamicStartUrl: true,
   dynamicStartUrlRedirect: "/login",
   reloadOnOnline: false,
-  extendDefaultRuntimeCaching: true,
+  extendDefaultRuntimeCaching: false, // Disable default caching rules
   workboxOptions: {
-    cacheId: "v-1.0.1",
+    cacheId: "v-1.0.2",
     skipWaiting: true,
     clientsClaim: true,
     cleanupOutdatedCaches: true,
     disableDevLogs: true,
     runtimeCaching: [
       {
-        urlPattern: new RegExp(
-          `${process.env.NEXT_PUBLIC_HTTP_URL}/v1/users/login`
-        ),
-        handler: "NetworkOnly",
-      },
-      {
-        urlPattern: new RegExp(
-          `${process.env.NEXT_PUBLIC_HTTP_URL}/v1/users/login/verification-login`
-        ),
+        urlPattern: /.*/,
         handler: "NetworkOnly",
       },
     ],
