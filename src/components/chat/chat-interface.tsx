@@ -248,8 +248,8 @@ export function ChatInterface({
               transition={{ duration: 0.3 }}
               className={`flex items-center gap-1 sm:gap-2 mt-2 ${
                 isAgent
-                  ? "ml-6 sm:ml-10 justify-start"
-                  : "mr-6 sm:mr-10 justify-end"
+                  ? "ml-6 sm:ml-10 justify-end"
+                  : "mr-6 sm:mr-10 justify-start"
               }`}>
               <div
                 className={`bg-white p-2 sm:p-3 rounded-2xl ${
