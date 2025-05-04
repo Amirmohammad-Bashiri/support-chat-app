@@ -17,6 +17,7 @@ import { useSocketStore } from "@/store/socket-store";
 import { ConnectionStatus } from "@/components/offline/connection-status";
 
 import type { Room } from "@/store/socket-store";
+import { TypingIndicator } from "./typing-indicator";
 
 export function ChatInterface({
   room,
@@ -255,7 +256,7 @@ export function ChatInterface({
                 className={`bg-white p-2 sm:p-3 rounded-2xl ${
                   isAgent ? "rounded-bl-none" : "rounded-br-none"
                 } shadow-sm border border-gray-100`}>
-                <TypingIndicator />
+                <TypingIndicator variant="dots" />
               </div>
             </motion.div>
           )}
@@ -316,36 +317,5 @@ export function ChatInterface({
       {/* Show connection status indicator */}
       <ConnectionStatus roomId={room.id} />
     </motion.div>
-  );
-}
-
-// New modern typing indicator component
-function TypingIndicator() {
-  return (
-    <div className="flex items-center justify-center">
-      <div className="flex space-x-2 rtl:space-x-reverse">
-        {[0, 1, 2, 3, 4].map(i => (
-          <motion.div
-            key={i}
-            initial={{ scale: 0.8 }}
-            animate={{
-              scale: [0.8, 1.2, 0.8],
-              backgroundColor: [
-                "rgb(216, 180, 254)", // Light purple
-                "rgb(139, 92, 246)", // Medium purple
-                "rgb(216, 180, 254)", // Back to light purple
-              ],
-            }}
-            transition={{
-              duration: 1.2,
-              repeat: Number.POSITIVE_INFINITY,
-              delay: i * 0.1,
-              ease: "easeInOut",
-            }}
-            className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-300"
-          />
-        ))}
-      </div>
-    </div>
   );
 }
