@@ -6,10 +6,10 @@ const withPWA = withPWAInit({
   dest: "public",
   dynamicStartUrl: true,
   dynamicStartUrlRedirect: "/login",
-  reloadOnOnline: true,
+  reloadOnOnline: false,
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
-    cacheId: "v-1.0.0",
+    cacheId: "v-1.0.1",
     skipWaiting: true,
     clientsClaim: true,
     cleanupOutdatedCaches: true,
