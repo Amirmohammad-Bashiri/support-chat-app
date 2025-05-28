@@ -32,7 +32,11 @@ export function SocketInitializer() {
     try {
       const newSocket = io(`${socketUrl}/support-chat`, {
         withCredentials: true,
+        transports: ["websocket"],
+        forceNew: true, // forces a brand-new connection instead of reusing a cached one
         reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
       });
 
       socketRef.current = newSocket;
