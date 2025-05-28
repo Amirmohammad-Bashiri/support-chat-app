@@ -37,8 +37,6 @@ jobs:
           command_timeout: "60m"
           script: |
             cd /var/www/amestris_main_node_project
-            docker compose build nextjs
-            sudo systemctl stop amestris_main_node_nginx.service
-            docker compose stop nextjs
-            docker compose rm nextjs
-            sudo systemctl restart amestris_main_node_nginx.service
+            docker build -t amestris-registery.local:5000/amestris-nextjs:latest -f ./support-chat-app/Dockerfile ./support-chat-app
+            docker push amestris-registery.local:5000/amestris-nextjs:latest
+            docker service update --force amestris_nextjs
